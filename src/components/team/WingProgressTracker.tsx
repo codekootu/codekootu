@@ -1,164 +1,246 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Cpu, HardDrive, Megaphone, ShieldAlert, Edit2, X } from 'lucide-react';
+import { 
+  Code2, 
+  HardDrive, 
+  Megaphone, 
+  ShieldCheck, 
+  Edit2, 
+  Check, 
+  X, 
+  RefreshCw 
+} from 'lucide-react';
 
-const DEFAULT_WINGS = [
-  { wing: 'software', progress_percentage: 0, report_text: 'No report provided yet.' },
-  { wing: 'hardware', progress_percentage: 0, report_text: 'No report provided yet.' },
-  { wing: 'operations', progress_percentage: 0, report_text: 'No report provided yet.' },
-  { wing: 'committee', progress_percentage: 0, report_text: 'No report provided yet.' },
-];
+interface WingReport {
+  id: string;
+  wing: 'software' | 'hardware' | 'operations' | 'committee';
+  title: string;
+  progress: number;
+  report: string;
+  updated_at: string;
+}
 
 const WING_ICONS = {
-  software: Cpu,
+  software: Code2,
   hardware: HardDrive,
   operations: Megaphone,
-  committee: ShieldAlert,
+  committee: ShieldCheck,
 };
 
-export function WingProgressTracker({ isAdmin }: { isAdmin: boolean }) {
+export function WingProgressTracker({ 
+  isAdmin, 
+  userRole 
+}: { 
+  isAdmin: boolean; 
+  userRole?: string;
+}) {
   const supabase = createClient();
-  const [reports, setReports] = useState<any[]>(DEFAULT_WINGS);
+  const [reports, setReports] = useState<WingReport[]>([]);
+  const [loading, setLoading] = useState(true);
   const [editingWing, setEditingWing] = useState<string | null>(null);
-  const [editProgress, setEditProgress] = useState(0);
-  const [editText, setEditText] = useState('');
+  const [editProgress, setEditProgress] = useState<number>(0);
+  const [editReportText, setEditReportText] = useState<string>('');
   const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    async function fetchReports() {
-      const { data } = await supabase.from('wing_reports').select('*').order('wing');
-      
-      if (data && data.length > 0) {
-        // Merge fetched data with default wings to ensure all 4 show up
-        const merged = DEFAULT_WINGS.map(def => {
-          const fetched = data.find(d => d.wing === def.wing);
-          return fetched ? fetched : def;
-        });
-        setReports(merged);
-      }
-      setLoaded(true);
+  const fetchReports = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('wing_reports')
+      .select('*')
+      .order('wing', { ascending: true });
+
+    if (!error && data) {
+      setReports(data as WingReport[]);
     }
-    fetchReports();
+    setLoading(false);
   }, [supabase]);
 
-  const openEdit = (report: any) => {
-    if (!isAdmin) return;
+  useEffect(() => {
+    fetchReports();
+
+    const channel = supabase
+      .channel('realtime_wing_reports')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'wing_reports' },
+        (payload) => {
+          if (payload.new) {
+            setReports((prev) =>
+              prev.map((r) => (r.id === (payload.new as WingReport).id ? (payload.new as WingReport) : r))
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, fetchReports]);
+
+  const startEditing = (report: WingReport) => {
     setEditingWing(report.wing);
-    setEditProgress(report.progress_percentage);
-    setEditText(report.report_text);
+    setEditProgress(report.progress);
+    setEditReportText(report.report);
   };
 
-  const saveReport = async () => {
-    if (!editingWing) return;
-    setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Upsert logic: Insert if doesn't exist, update if it does
-    const { error } = await supabase.from('wing_reports').upsert({
-      wing: editingWing,
-      progress_percentage: editProgress,
-      report_text: editText,
-      updated_by: session?.user.id,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'wing' });
+  const cancelEditing = () => {
+    setEditingWing(null);
+    setEditProgress(0);
+    setEditReportText('');
+  };
 
-    if (!error) {
-      setReports(reports.map(r => r.wing === editingWing ? { ...r, progress_percentage: editProgress, report_text: editText } : r));
-      setEditingWing(null);
+  const saveReport = async (wing: string) => {
+    setSaving(true);
+    const { error } = await supabase
+      .from('wing_reports')
+      .update({
+        progress: editProgress,
+        report: editReportText.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('wing', wing);
+
+    if (error) {
+      alert(`Failed to update report: ${error.message}`);
     } else {
-      alert("Error saving report: " + error.message);
+      setReports((prev) =>
+        prev.map((r) =>
+          r.wing === wing ? { ...r, progress: editProgress, report: editReportText.trim() } : r
+        )
+      );
+      cancelEditing();
     }
     setSaving(false);
   };
 
-  if (!loaded) return <div className="text-[#78837c] py-10">Loading wing reports...</div>;
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-44 bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {reports.map((report) => {
-          const Icon = WING_ICONS[report.wing as keyof typeof WING_ICONS] || ShieldAlert;
-          return (
-            <div key={report.wing} className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-xl p-6 relative group">
-              
-              {isAdmin && (
-                <button onClick={() => openEdit(report)} className="absolute top-4 right-4 p-2 bg-[#05070a] border border-[#dfe7e0]/10 rounded-lg text-[#78837c] hover:text-[#e0231c] opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Edit2 className="w-4 h-4" />
-                </button>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {reports.map((item) => {
+        const Icon = WING_ICONS[item.wing] || Code2;
+        const isEditing = editingWing === item.wing;
+        const canEdit = isAdmin || userRole === item.wing;
+
+        return (
+          <div
+            key={item.wing}
+            className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-xl p-6 flex flex-col justify-between transition-all hover:border-[#dfe7e0]/20"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-lg bg-[#e0231c]/10 text-[#e0231c] border border-[#e0231c]/20">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-[#dfe7e0] text-sm tracking-wide">{item.title}</h3>
+                    <p className="text-[10px] uppercase tracking-widest text-[#78837c]">Section Head Report</p>
+                  </div>
+                </div>
+
+                {canEdit && !isEditing && (
+                  <button
+                    onClick={() => startEditing(item)}
+                    className="flex items-center gap-1 text-[11px] text-[#78837c] hover:text-[#dfe7e0] transition-colors p-1"
+                    title="Edit Report"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Update</span>
+                  </button>
+                )}
+              </div>
+
+              {isEditing ? (
+                <div className="space-y-4 my-2">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <label className="text-[10px] uppercase tracking-widest text-[#78837c]">Progress</label>
+                      <span className="font-mono text-[#e0231c] font-medium">{editProgress}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={editProgress}
+                      onChange={(e) => setEditProgress(Number(e.target.value))}
+                      className="w-full accent-[#e0231c] bg-[#111722] cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase tracking-widest text-[#78837c] block mb-1">
+                      Status Summary
+                    </label>
+                    <textarea
+                      value={editReportText}
+                      onChange={(e) => setEditReportText(e.target.value)}
+                      rows={2}
+                      className="w-full bg-[#05070a] border border-[#dfe7e0]/20 rounded p-2 text-xs text-[#dfe7e0] outline-none focus:border-[#e0231c] resize-none"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      onClick={cancelEditing}
+                      disabled={saving}
+                      className="px-3 py-1 text-xs text-[#78837c] hover:text-[#dfe7e0] flex items-center gap-1"
+                    >
+                      <X className="w-3.5 h-3.5" /> Cancel
+                    </button>
+                    <button
+                      onClick={() => saveReport(item.wing)}
+                      disabled={saving}
+                      className="px-3 py-1 bg-[#e0231c] text-white rounded text-xs flex items-center gap-1 font-medium hover:bg-[#c01d17]"
+                    >
+                      {saving ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5" />
+                      )}
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-1.5 my-3">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-[#78837c] text-[10px] tracking-wider uppercase">Sprint Progress</span>
+                      <span className="font-mono text-xs font-medium text-[#dfe7e0]">{item.progress}%</span>
+                    </div>
+                    <div className="w-full bg-[#111722] rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-[#e0231c] h-1.5 rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#aab4ad] italic mt-4 line-clamp-3 leading-relaxed">
+                    "{item.report}"
+                  </p>
+                </>
               )}
-
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 rounded-lg bg-[#05070a] border border-[#dfe7e0]/10 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-[#e0231c]" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-white capitalize">{report.wing} Wing</h3>
-                  <p className="text-xs text-[#78837c]">Section Head Report</p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-[#aab4ad]">Sprint Progress</span>
-                  <span className="text-white font-medium">{report.progress_percentage}%</span>
-                </div>
-                <div className="w-full h-2 bg-[#05070a] rounded-full overflow-hidden border border-[#dfe7e0]/5">
-                  <div 
-                    className="h-full bg-[#e0231c] rounded-full transition-all duration-1000 ease-out" 
-                    style={{ width: `${report.progress_percentage}%` }}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-[#05070a] border border-[#dfe7e0]/5 rounded-lg p-4 min-h-[80px]">
-                <p className="text-sm text-[#dfe7e0] leading-relaxed italic">
-                  "{report.report_text}"
-                </p>
-              </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Edit Modal */}
-      {editingWing && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-[#0a0e12] border border-[#dfe7e0]/20 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95">
-            <div className="p-6 border-b border-[#dfe7e0]/10 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-white capitalize">Update {editingWing} Report</h3>
-              <button onClick={() => setEditingWing(null)} className="text-[#78837c] hover:text-white"><X className="w-5 h-5" /></button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-xs uppercase text-[#78837c] mb-2 block">Progress Percentage: {editProgress}%</label>
-                <input 
-                  type="range" min="0" max="100" value={editProgress} 
-                  onChange={(e) => setEditProgress(parseInt(e.target.value))}
-                  className="w-full accent-[#e0231c]" 
-                />
-              </div>
-              <div>
-                <label className="text-xs uppercase text-[#78837c] mb-2 block">Remarks / Status Update</label>
-                <textarea 
-                  value={editText} 
-                  onChange={(e) => setEditText(e.target.value)}
-                  placeholder="What is this wing currently working on?"
-                  className="w-full h-32 bg-[#05070a] border border-[#dfe7e0]/10 rounded-lg p-3 text-sm text-white outline-none focus:border-[#e0231c] resize-none"
-                />
-              </div>
-            </div>
-            <div className="p-4 border-t border-[#dfe7e0]/10 flex justify-end gap-2 bg-[#05070a]">
-              <button onClick={() => setEditingWing(null)} className="px-4 py-2 text-sm text-[#78837c] hover:text-white transition-colors">Cancel</button>
-              <button onClick={saveReport} disabled={saving} className="px-6 py-2 bg-[#e0231c] hover:bg-[#c01d17] text-white text-sm font-medium rounded transition-colors disabled:opacity-50">
-                {saving ? 'Saving...' : 'Save Update'}
-              </button>
+            <div className="mt-4 pt-3 border-t border-[#dfe7e0]/5 flex justify-between items-center text-[9px] text-[#78837c]">
+              <span>Last synced</span>
+              <span>{new Date(item.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 }
