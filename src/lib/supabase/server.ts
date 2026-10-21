@@ -12,16 +12,13 @@ export function createClient() {
         getAll() {
           return cookieStore.getAll()
         },
-        // Here is the fix: explicitly typing the parameter
         setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options)
             )
-          } catch (error) {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+          } catch {
+            // Ignore server component error
           }
         },
       },
