@@ -6,7 +6,9 @@ import { Users } from 'lucide-react';
 
 export default function FloatingTeamButton() {
   const pathname = usePathname();
-  if (pathname === '/members') return null;
+  
+  // Hide on /members and anywhere inside the /team workbench routes
+  if (pathname === '/members' || pathname?.startsWith('/team')) return null;
 
   return (
     <Link
