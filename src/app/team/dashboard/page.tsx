@@ -63,7 +63,7 @@ export default function TeamDashboard() {
   return (
     <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] flex font-sans">
       
-      {/* Mobile Top Bar - Only 1 ActivePresenceWidget mounted across DOM */}
+      {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0e12] border-b border-[#dfe7e0]/10 flex items-center justify-between px-4 z-50">
         <span className="text-sm font-medium tracking-widest uppercase">Kootu</span>
         <div className="flex items-center gap-3">
@@ -176,14 +176,14 @@ export default function TeamDashboard() {
                   Open Admin Action Panel
                 </Link>
               </div>
-              <WingProgressTracker isAdmin={true} />
+              <WingProgressTracker isAdmin={true} userRole={role} />
             </div>
           ) : (
             <div className="max-w-4xl mx-auto space-y-8">
               <div className="text-center py-20 border border-dashed border-[#dfe7e0]/20 rounded-lg">
                 <h2 className="text-2xl font-medium mb-2 capitalize">{role.replace('_', ' ')} Dashboard</h2>
                 <p className="text-[#78837c] mb-6">Welcome to Code Kootu. Check your wing's tools in the sidebar.</p>
-                <WingProgressTracker isAdmin={false} />
+                <WingProgressTracker isAdmin={false} userRole={role} />
               </div>
             </div>
           )}
