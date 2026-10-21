@@ -5,7 +5,6 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  // if "next" is in param, use it as the redirect address
   const next = searchParams.get('next') ?? '/'
 
   if (code) {
@@ -18,16 +17,14 @@ export async function GET(request: Request) {
           getAll() {
             return cookieStore.getAll()
           },
-          // Here is the fix: we explicitly added the type for cookiesToSet
+          // Here is the fix: We explicitly tell TypeScript what type this parameter is
           setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
             try {
               cookiesToSet.forEach(({ name, value, options }) =>
                 cookieStore.set(name, value, options)
               )
             } catch (error) {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
+              // Ignore error if called from a Server Component
             }
           },
         },
@@ -40,6 +37,5 @@ export async function GET(request: Request) {
     }
   }
 
-  // return the user to an error page with instructions
   return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }
