@@ -63,11 +63,10 @@ export default function TeamDashboard() {
   return (
     <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] flex font-sans">
       
-      {/* Mobile Top Bar */}
+      {/* Mobile Top Bar - Only 1 ActivePresenceWidget mounted across DOM */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0e12] border-b border-[#dfe7e0]/10 flex items-center justify-between px-4 z-50">
         <span className="text-sm font-medium tracking-widest uppercase">Kootu</span>
-        <div className="flex items-center gap-2">
-          {profile && <ActivePresenceWidget currentUser={profile} />}
+        <div className="flex items-center gap-3">
           <GlobalCommandMenu />
           <NotificationHub />
           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
