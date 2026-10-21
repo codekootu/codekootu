@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Cpu, HardDrive, Megaphone, ShieldAlert, 
   LogOut, MessageSquare, Menu, X, Wallet, Code2, Users 
 } from 'lucide-react';
+import { ActivePresenceWidget } from '@/components/team/ActivePresenceWidget';
 import { CurrentProjectWidget } from '@/components/team/CurrentProjectWidget';
 import { GlobalCommandMenu } from '@/components/team/GlobalCommandMenu';
 import { NotificationHub } from '@/components/team/NotificationHub';
@@ -65,7 +66,8 @@ export default function TeamDashboard() {
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0a0e12] border-b border-[#dfe7e0]/10 flex items-center justify-between px-4 z-50">
         <span className="text-sm font-medium tracking-widest uppercase">Kootu</span>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {profile && <ActivePresenceWidget currentUser={profile} />}
           <GlobalCommandMenu />
           <NotificationHub />
           <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
@@ -155,6 +157,7 @@ export default function TeamDashboard() {
         <header className="hidden md:flex h-20 border-b border-[#dfe7e0]/10 items-center justify-between px-8 flex-shrink-0">
           <h1 className="text-xl font-normal tracking-tight">Workbench Overview</h1>
           <div className="flex items-center gap-3">
+            {profile && <ActivePresenceWidget currentUser={profile} />}
             <GlobalCommandMenu />
             <NotificationHub />
             <CurrentProjectWidget userRole={role} />
