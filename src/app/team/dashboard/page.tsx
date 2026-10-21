@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Cpu, HardDrive, Megaphone, ShieldAlert, LogOut, MessageSquare, Menu, X } from 'lucide-react';
+import { 
+  LayoutDashboard, Cpu, HardDrive, Megaphone, ShieldAlert, 
+  LogOut, MessageSquare, Menu, X, Wallet, Code2, Users 
+} from 'lucide-react';
 import { CurrentProjectWidget } from '@/components/team/CurrentProjectWidget';
 import { GlobalCommandMenu } from '@/components/team/GlobalCommandMenu';
 import { NotificationHub } from '@/components/team/NotificationHub';
@@ -42,12 +45,19 @@ export default function TeamDashboard() {
   const navItems = [
     { name: 'Dashboard', href: '/team/dashboard', icon: LayoutDashboard, show: true },
     { name: 'Messages', href: '/team/messages', icon: MessageSquare, show: true },
+    { name: 'Spending Log', href: '/team/spending', icon: Wallet, show: true },
     { name: 'Admin Panel', href: '/team/admin', icon: ShieldAlert, show: isAdmin },
-    { name: 'Software', href: '/team/software', icon: Cpu, show: role === 'software' || isAdmin },
-    { name: 'Hardware', href: '/team/hardware', icon: HardDrive, show: role === 'hardware' || isAdmin },
-    { name: 'Operations', href: '/team/operations', icon: Megaphone, show: role === 'operations' || isAdmin },
-    { name: 'Committee', href: '/team/committee', icon: ShieldAlert, show: profile?.is_review_committee || isAdmin },
   ].filter(i => i.show);
+
+  const wingItems = [
+    { name: 'Software Wing', href: '/team/software', icon: Code2, show: role === 'software' || isAdmin },
+    { name: 'Hardware Wing', href: '/team/hardware', icon: HardDrive, show: role === 'hardware' || isAdmin },
+    { name: 'Operations Wing', href: '/team/operations', icon: Megaphone, show: role === 'operations' || isAdmin },
+    { name: 'Committee', href: '/team/committee', icon: Users, show: profile?.is_review_committee || isAdmin },
+  ].filter(i => i.show);
+
+  // Combined array for mobile bottom nav
+  const allMobileItems = [...navItems, ...wingItems];
 
   return (
     <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] flex font-sans">
@@ -66,39 +76,75 @@ export default function TeamDashboard() {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-16 bg-[#0a0e12] z-40 p-4 flex flex-col gap-2">
+        <div className="md:hidden fixed inset-0 top-16 bg-[#0a0e12] z-40 p-4 flex flex-col gap-2 overflow-y-auto">
+          <div className="text-[10px] uppercase tracking-widest text-[#78837c] mt-2 mb-1 px-4">Workbench</div>
           {navItems.map(item => (
-            <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-4 text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-md text-lg">
+            <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-md text-base">
               <item.icon className="w-5 h-5" /> {item.name}
             </Link>
           ))}
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-4 mt-auto text-[#e0231c] hover:bg-[#e0231c]/10 rounded-md text-lg">
+          
+          {wingItems.length > 0 && (
+            <>
+              <div className="text-[10px] uppercase tracking-widest text-[#78837c] mt-4 mb-1 px-4">Wings</div>
+              {wingItems.map(item => (
+                <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-md text-base">
+                  <item.icon className="w-5 h-5" /> {item.name}
+                </Link>
+              ))}
+            </>
+          )}
+
+          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-4 mt-auto text-[#e0231c] hover:bg-[#e0231c]/10 rounded-md text-base">
             <LogOut className="w-5 h-5" /> Sign Out
           </button>
         </div>
       )}
 
       {/* Desktop Sidebar */}
-      <aside className="w-64 border-r border-[#dfe7e0]/10 hidden md:flex flex-col justify-between">
+      <aside className="w-64 border-r border-[#dfe7e0]/10 hidden md:flex flex-col justify-between bg-[#05070a]">
         <div>
           <div className="h-20 flex items-center px-6 border-b border-[#dfe7e0]/10">
             <span className="text-sm font-medium tracking-[0.2em] uppercase">Kootu Workbench</span>
           </div>
-          <nav className="p-4 flex flex-col gap-2">
-            {navItems.map(item => (
-              <Link key={item.name} href={item.href} className="flex items-center gap-3 px-4 py-3 text-[#78837c] hover:text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-md text-sm transition-colors">
-                <item.icon className="w-4 h-4" /> {item.name}
-              </Link>
-            ))}
-          </nav>
+          
+          <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
+            {/* Workbench Group */}
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-[#78837c] mb-3 px-3">Workbench</div>
+              <nav className="space-y-1">
+                {navItems.map(item => (
+                  <Link key={item.name} href={item.href} className="flex items-center gap-3 px-3 py-2.5 text-[#aab4ad] hover:text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-lg text-sm transition-colors">
+                    <item.icon className="w-4 h-4" /> {item.name}
+                  </Link>
+                ))}
+              </nav>
+            </div>
+
+            {/* Wings Group */}
+            {wingItems.length > 0 && (
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-[#78837c] mb-3 px-3">Wings</div>
+                <nav className="space-y-1">
+                  {wingItems.map(item => (
+                    <Link key={item.name} href={item.href} className="flex items-center gap-3 px-3 py-2.5 text-[#aab4ad] hover:text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-lg text-sm transition-colors">
+                      <item.icon className="w-4 h-4" /> {item.name}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Footer Profile Area */}
         <div className="p-4 border-t border-[#dfe7e0]/10">
-          <div className="mb-4 px-4 flex flex-col gap-1">
+          <div className="mb-4 px-3 flex flex-col gap-1">
             <div className="text-[10px] text-[#78837c] uppercase tracking-wider">Logged in as</div>
             <div className="text-sm font-medium truncate">{profile?.full_name}</div>
             <div className="text-[10px] text-[#e0231c] mt-1 uppercase font-bold tracking-wider">{role ? role.replace('_', ' ') : 'UNKNOWN'}</div>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 w-full text-[#e0231c] hover:bg-[#e0231c]/10 rounded-md text-sm transition-colors">
+          <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2.5 w-full text-[#e0231c] hover:bg-[#e0231c]/10 rounded-lg text-sm transition-colors">
             <LogOut className="w-4 h-4" /> Sign Out
           </button>
         </div>
@@ -145,10 +191,10 @@ export default function TeamDashboard() {
 
       {/* Mobile Bottom Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0a0e12] border-t border-[#dfe7e0]/10 flex items-center justify-around z-50">
-        {navItems.slice(0, 4).map(item => (
+        {allMobileItems.slice(0, 4).map(item => (
           <Link key={item.name} href={item.href} className="flex flex-col items-center justify-center w-full h-full text-[#78837c] hover:text-white">
             <item.icon className="w-5 h-5 mb-1" />
-            <span className="text-[9px] uppercase tracking-wider">{item.name}</span>
+            <span className="text-[9px] uppercase tracking-wider">{item.name.replace(' Wing', '')}</span>
           </Link>
         ))}
       </div>
