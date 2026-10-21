@@ -19,7 +19,6 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
   // 1. Fetch Current Project & Task List
   const fetchCurrentProject = useCallback(async () => {
     try {
-      // Find the project flagged with is_current = true
       let query = supabase.from('projects').select('*');
       
       const { data: currentData, error: currentError } = await query
@@ -34,9 +33,14 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
 
       let activeProj = currentData;
 
-      // Fallback: if no project has is_current=true yet, pick the first project
+      // Fallback: if no project has is_current=true, pick the newest project
       if (!activeProj) {
-        const { data: fallbackData } = await supabase.from('projects').select('*').limit(1).maybeSingle();
+        const { data: fallbackData } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
         activeProj = fallbackData;
       }
 
@@ -78,7 +82,7 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
   useEffect(() => {
     fetchCurrentProject();
 
-    // 2. Realtime subscription: updates for everyone when you switch projects
+    // 2. Realtime subscription: updates for everyone when project or status changes
     const channel = supabase
       .channel('realtime_current_project')
       .on(
@@ -121,46 +125,33 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
       setUpdating(false);
     }
   }
-// 4. Super Admin: Update Status of Current Project and Sync with User's Idea Tracker
+
+  // 4. Super Admin: Update Status of Current Project and Sync with Ideas Table
   async function handleStatusChange(newStatus: string) {
     if (!isSuperAdmin || !project || updating) return;
     setUpdating(true);
 
     try {
-      // 1. Update Project Status in the workbench
+      // 1. Update Project Status in the workbench projects table
       const { error: projError } = await supabase
         .from('projects')
         .update({ status: newStatus })
         .eq('id', project.id);
 
-      if (projError) {
-        throw projError;
-      }
+      if (projError) throw projError;
 
-      // 2. Map workbench status directly to user tracker stages
-      const statusMap: Record<string, string> = {
-        IDEA: 'Received',
-        PLANNING: 'Approved',
-        BUILDING: 'Building',
-        TESTING: 'Building',
-        DEPLOYED: 'Deployed',
-        PAUSED: 'Approved'
-      };
-
-      const mappedIdeaStatus = statusMap[newStatus] || 'Received';
-
-      // 3. Update the corresponding row in ideas table so public tracker updates
-      if (project.idea_id) {
+      // 2. Sync status to parent ideas table so public tracker updates
+      const targetIdeaId = project.idea_id;
+      if (targetIdeaId) {
         await supabase
           .from('ideas')
-          .update({ status: mappedIdeaStatus })
-          .eq('id', project.idea_id);
+          .update({ status: newStatus })
+          .eq('id', targetIdeaId);
       } else {
-        // Fallback: match by title/name if idea_id is not directly linked
         await supabase
           .from('ideas')
-          .update({ status: mappedIdeaStatus })
-          .eq('title', project.name);
+          .update({ status: newStatus })
+          .ilike('title', `%${project.name}%`);
       }
 
       setProject((prev: any) => ({ ...prev, status: newStatus }));
@@ -206,20 +197,21 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
               <h3 className="font-medium text-white leading-tight">{project.name}</h3>
             </div>
             
-            {/* Status: Editable for Super Admin, badge for everyone else */}
+            {/* Status Dropdown matching exact Postgres idea_status enum */}
             {isSuperAdmin ? (
               <select
-                value={project.status || 'BUILDING'}
+                value={project.status || 'Building'}
                 onChange={(e) => handleStatusChange(e.target.value)}
                 disabled={updating}
                 className="text-[10px] bg-[#111722] text-[#e0231c] border border-[#e0231c]/40 rounded px-1.5 py-0.5 uppercase tracking-wider font-medium outline-none cursor-pointer"
               >
-                <option value="IDEA">IDEA</option>
-                <option value="PLANNING">PLANNING</option>
-                <option value="BUILDING">BUILDING</option>
-                <option value="TESTING">TESTING</option>
-                <option value="DEPLOYED">DEPLOYED</option>
-                <option value="PAUSED">PAUSED</option>
+                <option value="Received">Received</option>
+                <option value="In Review">In Review</option>
+                <option value="Approved">Approved</option>
+                <option value="Building">Building</option>
+                <option value="QA">QA</option>
+                <option value="Deployed">Deployed</option>
+                <option value="Rejected">Rejected</option>
               </select>
             ) : (
               <span className="text-[9px] px-1.5 py-0.5 bg-[#e0231c]/20 text-[#e0231c] rounded uppercase tracking-wider font-medium">
@@ -257,7 +249,7 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
                   >
                     <span className="truncate pr-2">{proj.name}</span>
                     <span className="text-[8px] font-mono uppercase px-1 py-0.5 rounded bg-black/40 text-[#78837c]">
-                      {proj.status || 'BUILD'}
+                      {proj.status || 'Building'}
                     </span>
                   </button>
                 ))}
@@ -272,7 +264,7 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
               <p className="text-xs text-[#78837c] italic">No tasks yet.</p>
             ) : (
               <ul className="flex flex-col gap-1.5 max-h-32 overflow-y-auto pr-1">
-                {tasks.map(task => (
+                {tasks.map((task) => (
                   <li key={task.id} className="flex items-start gap-1.5 text-xs text-[#dfe7e0]">
                     {task.status === 'Done' ? (
                       <CheckCircle2 className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
