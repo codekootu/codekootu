@@ -14,25 +14,27 @@ interface ActiveUser {
 export function ActivePresenceWidget({
   currentUser,
 }: {
-  currentUser?: { id: string; name?: string; role?: string; avatar_url?: string } | null;
+  currentUser?: { id?: string; full_name?: string; name?: string; role?: string; avatar_url?: string } | null;
 }) {
   const supabase = createClient();
   const [isOpen, setIsOpen] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<ActiveUser[]>([]);
   const widgetRef = useRef<HTMLDivElement>(null);
 
-  // Close on click outside
+  // Close on click outside (handles mouse and touch)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [isOpen]);
 
@@ -52,11 +54,13 @@ export function ActivePresenceWidget({
       const userMap = new Map<string, ActiveUser>();
 
       Object.values(state).forEach((presences: any) => {
-        presences.forEach((p: any) => {
-          if (p.userId && !userMap.has(p.userId)) {
-            userMap.set(p.userId, p);
-          }
-        });
+        if (Array.isArray(presences)) {
+          presences.forEach((p: any) => {
+            if (p?.userId && !userMap.has(p.userId)) {
+              userMap.set(p.userId, p);
+            }
+          });
+        }
       });
 
       setOnlineUsers(Array.from(userMap.values()));
@@ -67,10 +71,10 @@ export function ActivePresenceWidget({
       .on('presence', { event: 'join' }, syncState)
       .on('presence', { event: 'leave' }, syncState)
       .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
+        if (status === 'SUBSCRIBED' && currentUser?.id) {
           await channel.track({
             userId: currentUser.id,
-            name: currentUser.name || 'Member',
+            name: currentUser.full_name || currentUser.name || 'Member',
             role: currentUser.role || 'Contributor',
             avatarUrl: currentUser.avatar_url,
           });
@@ -80,13 +84,14 @@ export function ActivePresenceWidget({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, currentUser]);
+  }, [supabase, currentUser?.id, currentUser?.full_name, currentUser?.name, currentUser?.role, currentUser?.avatar_url]);
 
   const count = onlineUsers.length || 1;
 
   return (
     <div className="relative z-50" ref={widgetRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-2.5 py-1.5 bg-[#0a0e12] border border-[#2dd4bf]/30 hover:border-[#2dd4bf] rounded-full transition-all text-xs"
         title="View online members"
@@ -108,29 +113,47 @@ export function ActivePresenceWidget({
                 Active Now ({count})
               </span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-[#78837c] hover:text-white">
+            <button 
+              type="button"
+              onClick={() => setIsOpen(false)} 
+              className="text-[#78837c] hover:text-white"
+            >
               <X className="w-3 h-3" />
             </button>
           </div>
 
-          <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto">
-            {onlineUsers.map((u) => (
-              <div
-                key={u.userId}
-                className="flex items-center justify-between p-1.5 rounded bg-[#111722]/50 border border-[#dfe7e0]/5"
-              >
-                <div className="flex items-center gap-2 overflow-hidden">
-                  <div className="w-5 h-5 rounded-full bg-[#1c2433] text-[#dfe7e0] text-[9px] font-medium flex items-center justify-center flex-shrink-0">
-                    {u.name.charAt(0).toUpperCase()}
+          <div className="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1">
+            {onlineUsers.length === 0 ? (
+              <div className="text-[11px] text-[#78837c] py-2 text-center">Syncing presence...</div>
+            ) : (
+              onlineUsers.map((u) => {
+                const displayName = u.name || 'Member';
+                const initial = displayName.trim().charAt(0).toUpperCase() || 'M';
+
+                return (
+                  <div
+                    key={u.userId}
+                    className="flex items-center justify-between p-1.5 rounded bg-[#111722]/50 border border-[#dfe7e0]/5"
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="w-5 h-5 rounded-full bg-[#1c2433] text-[#dfe7e0] text-[9px] font-medium flex items-center justify-center flex-shrink-0 border border-[#2dd4bf]/20">
+                        {initial}
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-white truncate font-medium">
+                          {displayName}
+                          {currentUser?.id === u.userId && (
+                            <span className="ml-1 text-[9px] text-[#2dd4bf]">(You)</span>
+                          )}
+                        </span>
+                        <span className="text-[9px] text-[#78837c] uppercase">{u.role || 'Member'}</span>
+                      </div>
+                    </div>
+                    <Circle className="w-1.5 h-1.5 fill-[#2dd4bf] text-[#2dd4bf] flex-shrink-0" />
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-white truncate font-medium">{u.name}</span>
-                    <span className="text-[9px] text-[#78837c] uppercase">{u.role}</span>
-                  </div>
-                </div>
-                <Circle className="w-1.5 h-1.5 fill-[#2dd4bf] text-[#2dd4bf]" />
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
         </div>
       )}
