@@ -21,7 +21,7 @@ export function ActivePresenceWidget({
   const [onlineUsers, setOnlineUsers] = useState<ActiveUser[]>([]);
   const widgetRef = useRef<HTMLDivElement>(null);
 
-  // Close on click outside (handles mouse and touch)
+  // Close on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent | TouchEvent) {
       if (widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
@@ -66,12 +66,13 @@ export function ActivePresenceWidget({
       setOnlineUsers(Array.from(userMap.values()));
     };
 
+    // Chain ALL .on listeners BEFORE calling .subscribe()
     channel
       .on('presence', { event: 'sync' }, syncState)
       .on('presence', { event: 'join' }, syncState)
       .on('presence', { event: 'leave' }, syncState)
       .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED' && currentUser?.id) {
+        if (status === 'SUBSCRIBED') {
           await channel.track({
             userId: currentUser.id,
             name: currentUser.full_name || currentUser.name || 'Member',
@@ -84,7 +85,7 @@ export function ActivePresenceWidget({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, currentUser?.id, currentUser?.full_name, currentUser?.name, currentUser?.role, currentUser?.avatar_url]);
+  }, [supabase, currentUser?.id]);
 
   const count = onlineUsers.length || 1;
 
