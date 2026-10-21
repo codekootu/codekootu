@@ -135,25 +135,25 @@ export function WingProgressTracker({
 
   const saveReport = async (wing: string) => {
     setSaving(true);
+    
+    // Explicit update targeting the wing row directly
     const { error } = await supabase
       .from('wing_reports')
-      .upsert(
-        {
-          wing,
-          title: reports.find((r) => r.wing === wing)?.title || wing,
-          progress: editProgress,
-          report: editReportText.trim(),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'wing' }
-      );
+      .update({
+        progress: editProgress,
+        report: editReportText.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('wing', wing);
 
     if (error) {
       alert(`Failed to update report: ${error.message}`);
     } else {
       setReports((prev) =>
         prev.map((r) =>
-          r.wing === wing ? { ...r, progress: editProgress, report: editReportText.trim(), updated_at: new Date().toISOString() } : r
+          r.wing === wing
+            ? { ...r, progress: editProgress, report: editReportText.trim(), updated_at: new Date().toISOString() }
+            : r
         )
       );
       cancelEditing();
