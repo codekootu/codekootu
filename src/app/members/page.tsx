@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, X } from 'lucide-react';
 
-// The image paths are now generated dynamically in the JSX using the ID.
 const MEMBERS = [
   // Software Wing
   { id: 'CS-S-01', name: 'Noel Mathews', title: 'Chief Systems Architect & Technical Director', wing: 'Software' },
@@ -102,27 +101,27 @@ export default function MembersPage() {
 
             {/* Flip Container */}
             <div 
-              className={`relative w-full aspect-[2/3] transition-transform duration-700 transform-style-3d cursor-pointer shadow-2xl shadow-black/80 rounded-2xl`}
+              className={`relative w-full aspect-[2/3] transition-transform duration-700 transform-style-3d cursor-pointer shadow-2xl shadow-black/80`}
               onClick={() => setIsFlipped(!isFlipped)}
               style={{ transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0)' }}
             >
               
               {/* FRONT OF CARD */}
-              <div className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden border border-[#dfe7e0]/20">
+              <div className="absolute inset-0 backface-hidden bg-transparent">
                 <img 
                   src={`/cards/${selected.id}-front.png`} 
                   alt={`${selected.name} Front`} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-contain rounded-2xl" 
                   onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x900/0a0e12/dfe7e0?text=Front+Missing'; }}
                 />
               </div>
 
               {/* BACK OF CARD */}
-              <div className="absolute inset-0 backface-hidden rounded-2xl overflow-hidden border border-[#dfe7e0]/20" style={{ transform: 'rotateY(180deg)' }}>
+              <div className="absolute inset-0 backface-hidden bg-transparent" style={{ transform: 'rotateY(180deg)' }}>
                 <img 
                   src={`/cards/${selected.id}-back.png`} 
                   alt={`${selected.name} Back`} 
-                  className="w-full h-full object-cover" 
+                  className="w-full h-full object-contain rounded-2xl" 
                   onError={(e) => { e.currentTarget.src = 'https://placehold.co/600x900/0a0e12/dfe7e0?text=Back+Missing'; }}
                 />
               </div>
