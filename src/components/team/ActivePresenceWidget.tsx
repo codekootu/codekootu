@@ -41,7 +41,16 @@ export function ActivePresenceWidget({
   useEffect(() => {
     if (!currentUser?.id) return;
 
-    const channel = supabase.channel('workbench-online-presence', {
+    const channelName = 'workbench-presence-room';
+    
+    // Clean up any stale duplicate channel before subscribing
+    const existingChannels = supabase.getChannels();
+    const existing = existingChannels.find((c) => c.topic === `realtime:${channelName}`);
+    if (existing) {
+      supabase.removeChannel(existing);
+    }
+
+    const channel = supabase.channel(channelName, {
       config: {
         presence: {
           key: currentUser.id,
@@ -50,23 +59,27 @@ export function ActivePresenceWidget({
     });
 
     const syncState = () => {
-      const state = channel.presenceState();
-      const userMap = new Map<string, ActiveUser>();
+      try {
+        const state = channel.presenceState();
+        const userMap = new Map<string, ActiveUser>();
 
-      Object.values(state).forEach((presences: any) => {
-        if (Array.isArray(presences)) {
-          presences.forEach((p: any) => {
-            if (p?.userId && !userMap.has(p.userId)) {
-              userMap.set(p.userId, p);
-            }
-          });
-        }
-      });
+        Object.values(state).forEach((presences: any) => {
+          if (Array.isArray(presences)) {
+            presences.forEach((p: any) => {
+              if (p?.userId && !userMap.has(p.userId)) {
+                userMap.set(p.userId, p);
+              }
+            });
+          }
+        });
 
-      setOnlineUsers(Array.from(userMap.values()));
+        setOnlineUsers(Array.from(userMap.values()));
+      } catch (e) {
+        console.error('Error syncing presence state:', e);
+      }
     };
 
-    // Chain ALL .on listeners BEFORE calling .subscribe()
+    // Chain ALL .on listeners first before calling .subscribe()
     channel
       .on('presence', { event: 'sync' }, syncState)
       .on('presence', { event: 'join' }, syncState)
