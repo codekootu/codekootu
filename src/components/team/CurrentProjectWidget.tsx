@@ -121,25 +121,52 @@ export function CurrentProjectWidget({ userRole }: { userRole: string }) {
       setUpdating(false);
     }
   }
-
-  // 4. Super Admin: Update Status of Current Project
+// 4. Super Admin: Update Status of Current Project and Sync with User's Idea Tracker
   async function handleStatusChange(newStatus: string) {
     if (!isSuperAdmin || !project || updating) return;
     setUpdating(true);
 
     try {
-      const { error } = await supabase
+      // 1. Update Project Status in the workbench
+      const { error: projError } = await supabase
         .from('projects')
         .update({ status: newStatus })
         .eq('id', project.id);
 
-      if (error) {
-        alert("Error updating status: " + error.message);
-      } else {
-        setProject((prev: any) => ({ ...prev, status: newStatus }));
+      if (projError) {
+        throw projError;
       }
+
+      // 2. Map workbench status directly to user tracker stages
+      const statusMap: Record<string, string> = {
+        IDEA: 'Received',
+        PLANNING: 'Approved',
+        BUILDING: 'Building',
+        TESTING: 'Building',
+        DEPLOYED: 'Deployed',
+        PAUSED: 'Approved'
+      };
+
+      const mappedIdeaStatus = statusMap[newStatus] || 'Received';
+
+      // 3. Update the corresponding row in ideas table so public tracker updates
+      if (project.idea_id) {
+        await supabase
+          .from('ideas')
+          .update({ status: mappedIdeaStatus })
+          .eq('id', project.idea_id);
+      } else {
+        // Fallback: match by title/name if idea_id is not directly linked
+        await supabase
+          .from('ideas')
+          .update({ status: mappedIdeaStatus })
+          .eq('title', project.name);
+      }
+
+      setProject((prev: any) => ({ ...prev, status: newStatus }));
     } catch (err: any) {
-      alert("Error: " + err.message);
+      console.error("Status update error:", err);
+      alert("Error updating status: " + err.message);
     } finally {
       setUpdating(false);
     }
