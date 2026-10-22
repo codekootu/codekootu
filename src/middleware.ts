@@ -17,38 +17,18 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+          request.cookies.set({ name, value, ...options });
           response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request: { headers: request.headers },
           });
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+          response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
+          request.cookies.set({ name, value: '', ...options });
           response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request: { headers: request.headers },
           });
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          });
+          response.cookies.set({ name, value: '', ...options });
         },
       },
     }
@@ -60,7 +40,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // 1. Whitelist open auth routes
+  // 1. Whitelist auth endpoints and login pages
   if (
     pathname === '/login' ||
     pathname === '/team/login' ||
@@ -69,13 +49,13 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 2. Protect Team Workbench routes — keep team users in the team flow
+  // 2. Protect Team Workbench routes (/team/* except /team/login)
   if (pathname.startsWith('/team') && !user) {
     const redirectUrl = new URL('/team/login', request.url);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // 3. Protect Public Contributor Portal routes
+  // 3. Protect Public Contributor Portal routes (/portal/*)
   if (pathname.startsWith('/portal') && !user) {
     const redirectUrl = new URL('/login', request.url);
     return NextResponse.redirect(redirectUrl);
