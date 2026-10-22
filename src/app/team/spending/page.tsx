@@ -8,6 +8,7 @@ import {
   Wallet, ArrowLeft, Plus, X, MessageSquare, AlertTriangle, 
   CheckCircle2, Send, ShieldAlert, ChevronDown, ChevronUp 
 } from 'lucide-react';
+import { Spending3DCanvas } from '@/components/team/Spending3DCanvas';
 
 interface ExpenseComment {
   id: string;
@@ -212,9 +213,12 @@ export default function SpendingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-[#dfe7e0] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#05070a] text-[#dfe7e0] flex flex-col font-sans relative overflow-x-hidden selection:bg-[#e0231c]/30">
+      {/* 3D Animated Interactive Canvas */}
+      <Spending3DCanvas />
+
       {/* Top Bar */}
-      <div className="border-b border-[#dfe7e0]/10 px-8 py-4 flex items-center justify-between">
+      <div className="relative z-10 border-b border-[#dfe7e0]/10 bg-[#05070a]/70 backdrop-blur-md px-8 py-4 flex items-center justify-between">
         <Link 
           href="/team/dashboard" 
           className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#78837c] hover:text-white transition-colors"
@@ -222,32 +226,34 @@ export default function SpendingPage() {
           <ArrowLeft className="w-4 h-4" />
           Workbench
         </Link>
-        <span className="text-xs uppercase tracking-widest text-[#78837c]">
+        <span className="text-xs uppercase tracking-widest text-[#78837c] font-mono">
           {profile?.full_name} ({userRole.replace('_', ' ')})
         </span>
       </div>
 
-      <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="relative z-10 max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+        {/* Header Section with 3D Depth Styling */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl bg-gradient-to-r from-[#0a0e12]/90 via-[#0e131b]/80 to-[#0a0e12]/90 border border-[#dfe7e0]/10 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-[#e0231c]/30">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="p-2 rounded bg-[#e0231c]/10 text-[#e0231c] border border-[#e0231c]/20">
-                <Wallet className="w-5 h-5" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2.5 rounded-xl bg-[#e0231c]/10 text-[#e0231c] border border-[#e0231c]/30 shadow-[0_0_15px_rgba(224,35,28,0.25)]">
+                <Wallet className="w-5 h-5 animate-pulse" />
               </div>
-              <h1 className="text-2xl font-light text-white tracking-tight">Spending Log</h1>
+              <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">
+                Spending Ledger
+              </h1>
             </div>
-            <p className="text-xs text-[#78837c]">
-              Track collective expenses, verify invoices, and flag errors.
+            <p className="text-xs text-[#78837c] max-w-md">
+              Collective wing treasury, real-time invoice settlement, and autonomous audit requests.
             </p>
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="text-right">
+            <div className="text-right p-3 rounded-xl bg-[#05070a]/60 border border-[#dfe7e0]/5">
               <span className="text-[10px] uppercase tracking-widest text-[#78837c] block">
-                Total Approved
+                Total Approved Pool
               </span>
-              <span className="text-2xl font-mono font-medium text-white">
+              <span className="text-2xl md:text-3xl font-mono font-medium text-white tracking-tight drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
                 ₹{totalApproved.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -256,7 +262,7 @@ export default function SpendingPage() {
             {canAddExpense && (
               <button
                 onClick={() => setShowForm(!showForm)}
-                className="px-4 py-2.5 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+                className="px-5 py-3 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded-xl text-xs font-medium transition-all shadow-[0_0_20px_rgba(224,35,28,0.35)] hover:shadow-[0_0_25px_rgba(224,35,28,0.6)] flex items-center gap-2 active:scale-95"
               >
                 {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 {showForm ? 'Cancel' : 'Suggest Expense'}
@@ -269,7 +275,7 @@ export default function SpendingPage() {
         {showForm && canAddExpense && (
           <form 
             onSubmit={handleAddExpense} 
-            className="p-6 bg-[#0a0e12] border border-[#dfe7e0]/15 rounded-xl space-y-4 animate-in fade-in"
+            className="p-6 bg-[#0a0e12]/90 backdrop-blur-md border border-[#dfe7e0]/15 rounded-xl space-y-4 animate-in fade-in shadow-2xl"
           >
             <h3 className="text-xs uppercase tracking-widest text-[#dfe7e0] font-medium">
               Suggest New Expense
@@ -344,7 +350,7 @@ export default function SpendingPage() {
         )}
 
         {/* Expenses Table */}
-        <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-xl overflow-hidden">
+        <div className="bg-[#0a0e12]/90 backdrop-blur-md border border-[#dfe7e0]/10 rounded-xl overflow-hidden shadow-2xl">
           <div className="grid grid-cols-12 gap-2 px-6 py-3.5 border-b border-[#dfe7e0]/10 text-[10px] uppercase tracking-wider text-[#78837c]">
             <span className="col-span-2">Date</span>
             <span className="col-span-3">Event / Item</span>
@@ -366,7 +372,7 @@ export default function SpendingPage() {
                 const commentCount = expense.comments?.length || 0;
 
                 return (
-                  <div key={expense.id} className="hover:bg-[#111722]/30 transition-colors">
+                  <div key={expense.id} className="hover:bg-[#111722]/40 transition-colors">
                     {/* Main Row */}
                     <div className="grid grid-cols-12 gap-2 px-6 py-4 items-center text-xs">
                       <span className="col-span-2 text-[#78837c] font-mono">
@@ -409,7 +415,7 @@ export default function SpendingPage() {
                           </span>
                         )}
 
-                        {/* Leads / Admin quick actions for pending/disputed */}
+                        {/* Quick actions for Leads / Admin */}
                         {canAddExpense && expense.status !== 'approved' && (
                           <button
                             onClick={() => handleStatusChange(expense.id, 'approved')}
@@ -420,7 +426,7 @@ export default function SpendingPage() {
                           </button>
                         )}
 
-                        {/* Accordion toggle for comments and dispute */}
+                        {/* Accordion toggle */}
                         <button
                           onClick={() => setExpandedExpenseId(isExpanded ? null : expense.id)}
                           className="p-1 text-[#78837c] hover:text-white flex items-center gap-1"
@@ -437,8 +443,7 @@ export default function SpendingPage() {
 
                     {/* Expanded Drawer for Comments & Dispute */}
                     {isExpanded && (
-                      <div className="px-6 py-4 bg-[#05070a]/80 border-t border-[#dfe7e0]/5 space-y-4">
-                        {/* Dispute Warning Notice if active */}
+                      <div className="px-6 py-4 bg-[#05070a]/90 border-t border-[#dfe7e0]/5 space-y-4">
                         {expense.dispute_note && (
                           <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs space-y-1">
                             <div className="flex items-center gap-1.5 text-amber-400 font-medium">
@@ -449,7 +454,6 @@ export default function SpendingPage() {
                           </div>
                         )}
 
-                        {/* Member Actions: Request Review Button */}
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] uppercase tracking-widest text-[#78837c]">
                             Discussion & Feedback
@@ -466,7 +470,6 @@ export default function SpendingPage() {
                           )}
                         </div>
 
-                        {/* Review Flag Form */}
                         {isDisputing && (
                           <div className="p-3 bg-[#0a0e12] border border-amber-500/30 rounded-lg space-y-2">
                             <label className="text-[10px] text-[#78837c] uppercase tracking-wider block">
@@ -492,7 +495,6 @@ export default function SpendingPage() {
                           </div>
                         )}
 
-                        {/* Comments List */}
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {commentCount === 0 ? (
                             <div className="text-[11px] text-[#78837c] italic">No comments yet.</div>
@@ -512,7 +514,6 @@ export default function SpendingPage() {
                           )}
                         </div>
 
-                        {/* Add Comment Input */}
                         <div className="flex gap-2 pt-1">
                           <input
                             type="text"
