@@ -153,17 +153,29 @@ export default function PublicPortalLoginPage() {
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true);
     setErrorMsg(null);
-    const origin = window.location.origin;
-    const { error } = await supabase.auth.signInWithOAuth({
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.codekootu.codes';
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${origin}/auth/callback?next=/portal/dashboard`,
+        skipBrowserRedirect: true,
       },
     });
 
     if (error) {
       setErrorMsg(error.message);
       setLoadingGoogle(false);
+      return;
+    }
+
+    if (data?.url) {
+      if (window.top) {
+        window.top.location.href = data.url;
+      } else {
+        window.location.href = data.url;
+      }
     }
   };
 
