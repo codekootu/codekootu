@@ -49,6 +49,7 @@ export default function TeamDashboard() {
     { name: 'Messages', href: '/team/messages', icon: MessageSquare, show: true },
     { name: 'Spending Log', href: '/team/spending', icon: Wallet, show: true },
     { name: 'Admin Panel', href: '/team/admin', icon: ShieldAlert, show: isAdmin },
+    { name: 'Submissions Intel', href: '/team/admin/submissions', icon: ShieldCheck, show: isAdmin }, 
   ].filter(i => i.show);
 
   const wingItems = [
