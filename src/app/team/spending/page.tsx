@@ -41,7 +41,7 @@ export default function SpendingPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showForm, setShowForm] = useState(false);
 
-  // Form states
+  // Form inputs
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [spentWhere, setSpentWhere] = useState('');
@@ -103,24 +103,29 @@ export default function SpendingPage() {
     };
   }, [supabase, fetchExpenses]);
 
-  // Role Permissions
+  // Lead Roster Identification
   const userRole = profile?.role || '';
-  const canAddExpense = [
-    'super_admin',
-    'software',
-    'hardware',
-    'operations',
-    'committee'
-  ].includes(userRole);
+  const email = (profile?.email || '').toLowerCase();
+  const fullName = (profile?.full_name || '').toLowerCase();
+
+  const isNoel = email.includes('noel') || fullName.includes('noel') || userRole === 'super_admin';
+  const isAustin = email.includes('austin') || fullName.includes('austin');
+  const isBestin = email.includes('bestin') || fullName.includes('bestin');
+
+  // ONLY Noel, Austin, and Bestin can suggest expenses
+  const canSuggestExpense = isNoel || isAustin || isBestin || profile?.can_suggest_expense === true;
+
+  // ONLY Noel (Super Admin) can approve or reject expenses
+  const canApproveExpense = isNoel;
 
   const totalApproved = expenses
     .filter((e) => e.status === 'approved')
     .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
-  // Submit Expense (Leads & Super Admin only)
+  // Submit Expense
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canAddExpense) return;
+    if (!canSuggestExpense) return;
 
     setSubmitting(true);
     const { error } = await supabase.from('expenses').insert({
@@ -130,7 +135,7 @@ export default function SpendingPage() {
       spent_by: spentBy.trim() || profile?.full_name || 'Team Lead',
       payment_method: method,
       share_per_person: sharePerPerson ? parseFloat(sharePerPerson) : null,
-      status: userRole === 'super_admin' ? 'approved' : 'pending',
+      status: isNoel ? 'approved' : 'pending',
       comments: [],
     });
 
@@ -173,7 +178,7 @@ export default function SpendingPage() {
     }
   };
 
-  // Submit Review Request / Dispute (Available to all team members)
+  // Report Issue / Dispute (Available to all members including Gokul)
   const handleRequestReview = async (expenseId: string) => {
     const reason = disputeInput[expenseId]?.trim();
     if (!reason) {
@@ -197,10 +202,10 @@ export default function SpendingPage() {
     }
   };
 
-  // Approve / Resolve (Super Admin or Wing Leads)
+  // Approve / Settle Expense (ONLY Noel)
   const handleStatusChange = async (expenseId: string, nextStatus: 'approved' | 'rejected') => {
-    if (!canAddExpense) return;
-    await supabase.from('expenses').update({ status: nextStatus }).eq('id', expenseId);
+    if (!canApproveExpense) return;
+    await supabase.from('expenses').update({ status: nextStatus, dispute_note: null }).eq('id', expenseId);
     fetchExpenses();
   };
 
@@ -214,7 +219,6 @@ export default function SpendingPage() {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-[#dfe7e0] flex flex-col font-sans relative overflow-x-hidden selection:bg-[#e0231c]/30">
-      {/* 3D Animated Interactive Canvas */}
       <Spending3DCanvas />
 
       {/* Top Bar */}
@@ -232,7 +236,7 @@ export default function SpendingPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
-        {/* Header Section with 3D Depth Styling */}
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl bg-gradient-to-r from-[#0a0e12]/90 via-[#0e131b]/80 to-[#0a0e12]/90 border border-[#dfe7e0]/10 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-[#e0231c]/30">
           <div>
             <div className="flex items-center gap-3 mb-2">
@@ -258,8 +262,8 @@ export default function SpendingPage() {
               </span>
             </div>
 
-            {/* ONLY Team Leads and Super Admin get this button */}
-            {canAddExpense && (
+            {/* ONLY Noel, Austin, and Bestin see this button */}
+            {canSuggestExpense && (
               <button
                 onClick={() => setShowForm(!showForm)}
                 className="px-5 py-3 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded-xl text-xs font-medium transition-all shadow-[0_0_20px_rgba(224,35,28,0.35)] hover:shadow-[0_0_25px_rgba(224,35,28,0.6)] flex items-center gap-2 active:scale-95"
@@ -271,8 +275,8 @@ export default function SpendingPage() {
           </div>
         </div>
 
-        {/* Suggest Expense Form (Only for Leads & Super Admin) */}
-        {showForm && canAddExpense && (
+        {/* Suggest Expense Form (Only shown to Noel, Austin, Bestin) */}
+        {showForm && canSuggestExpense && (
           <form 
             onSubmit={handleAddExpense} 
             className="p-6 bg-[#0a0e12]/90 backdrop-blur-md border border-[#dfe7e0]/15 rounded-xl space-y-4 animate-in fade-in shadow-2xl"
@@ -373,7 +377,6 @@ export default function SpendingPage() {
 
                 return (
                   <div key={expense.id} className="hover:bg-[#111722]/40 transition-colors">
-                    {/* Main Row */}
                     <div className="grid grid-cols-12 gap-2 px-6 py-4 items-center text-xs">
                       <span className="col-span-2 text-[#78837c] font-mono">
                         {new Date(expense.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -415,21 +418,21 @@ export default function SpendingPage() {
                           </span>
                         )}
 
-                        {/* Quick actions for Leads / Admin */}
-                        {canAddExpense && expense.status !== 'approved' && (
+                        {/* ONLY Noel (Super Admin) gets the button to approve */}
+                        {canApproveExpense && expense.status !== 'approved' && (
                           <button
                             onClick={() => handleStatusChange(expense.id, 'approved')}
-                            className="p-1 hover:text-emerald-400 text-[#78837c]"
-                            title="Approve Expense"
+                            className="p-1 hover:text-emerald-400 text-[#78837c] transition-colors"
+                            title="Approve & Settle Expense (Super Admin)"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                           </button>
                         )}
 
-                        {/* Accordion toggle */}
+                        {/* Accordion toggle for feedback */}
                         <button
                           onClick={() => setExpandedExpenseId(isExpanded ? null : expense.id)}
-                          className="p-1 text-[#78837c] hover:text-white flex items-center gap-1"
+                          className="p-1 text-[#78837c] hover:text-white flex items-center gap-1 transition-colors"
                           title="View Comments & Actions"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
@@ -441,7 +444,7 @@ export default function SpendingPage() {
                       </div>
                     </div>
 
-                    {/* Expanded Drawer for Comments & Dispute */}
+                    {/* Member Feedback Drawer */}
                     {isExpanded && (
                       <div className="px-6 py-4 bg-[#05070a]/90 border-t border-[#dfe7e0]/5 space-y-4">
                         {expense.dispute_note && (
@@ -470,6 +473,7 @@ export default function SpendingPage() {
                           )}
                         </div>
 
+                        {/* Error Reporting Form */}
                         {isDisputing && (
                           <div className="p-3 bg-[#0a0e12] border border-amber-500/30 rounded-lg space-y-2">
                             <label className="text-[10px] text-[#78837c] uppercase tracking-wider block">
@@ -495,6 +499,7 @@ export default function SpendingPage() {
                           </div>
                         )}
 
+                        {/* Comments */}
                         <div className="space-y-2 max-h-48 overflow-y-auto">
                           {commentCount === 0 ? (
                             <div className="text-[11px] text-[#78837c] italic">No comments yet.</div>
@@ -514,6 +519,7 @@ export default function SpendingPage() {
                           )}
                         </div>
 
+                        {/* Add Comment */}
                         <div className="flex gap-2 pt-1">
                           <input
                             type="text"
