@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   LayoutDashboard, Cpu, HardDrive, Megaphone, ShieldAlert, 
-  LogOut, MessageSquare, Menu, X, Wallet, Code2, Users 
+  LogOut, MessageSquare, Menu, X, Wallet, Code2, Users, Lightbulb 
 } from 'lucide-react';
 import { ActivePresenceWidget } from '@/components/team/ActivePresenceWidget';
 import { CurrentProjectWidget } from '@/components/team/CurrentProjectWidget';
@@ -45,6 +45,7 @@ export default function TeamDashboard() {
 
   const navItems = [
     { name: 'Dashboard', href: '/team/dashboard', icon: LayoutDashboard, show: true },
+    { name: 'Ideas & Enclave', href: '/team/ideas', icon: Lightbulb, show: true },
     { name: 'Messages', href: '/team/messages', icon: MessageSquare, show: true },
     { name: 'Spending Log', href: '/team/spending', icon: Wallet, show: true },
     { name: 'Admin Panel', href: '/team/admin', icon: ShieldAlert, show: isAdmin },
@@ -81,7 +82,7 @@ export default function TeamDashboard() {
           <div className="text-[10px] uppercase tracking-widest text-[#78837c] mt-2 mb-1 px-4">Workbench</div>
           {navItems.map(item => (
             <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-md text-base">
-              <item.icon className="w-5 h-5" /> {item.name}
+              <item.icon className="w-5 h-5 text-[#2dd4bf]" /> {item.name}
             </Link>
           ))}
           
@@ -116,7 +117,7 @@ export default function TeamDashboard() {
               <nav className="space-y-1">
                 {navItems.map(item => (
                   <Link key={item.name} href={item.href} className="flex items-center gap-3 px-3 py-2.5 text-[#aab4ad] hover:text-[#dfe7e0] hover:bg-[#dfe7e0]/5 rounded-lg text-sm transition-colors">
-                    <item.icon className="w-4 h-4" /> {item.name}
+                    <item.icon className="w-4 h-4 text-[#2dd4bf]" /> {item.name}
                   </Link>
                 ))}
               </nav>
@@ -172,9 +173,14 @@ export default function TeamDashboard() {
                   <h2 className="text-3xl font-light mb-2">Executive Overview</h2>
                   <p className="text-[#78837c]">Live progress reports from all wings.</p>
                 </div>
-                <Link href="/team/admin" className="px-6 py-3 bg-[#e0231c] text-white rounded font-medium hover:bg-[#c01d17] transition-colors">
-                  Open Admin Action Panel
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link href="/team/ideas" className="px-5 py-3 bg-[#dfe7e0]/10 border border-[#dfe7e0]/15 text-white rounded font-medium hover:bg-[#dfe7e0]/15 transition-colors flex items-center gap-2 text-sm">
+                    <Lightbulb className="w-4 h-4 text-[#2dd4bf]" /> View Innovations
+                  </Link>
+                  <Link href="/team/admin" className="px-6 py-3 bg-[#e0231c] text-white rounded font-medium hover:bg-[#c01d17] transition-colors text-sm">
+                    Open Admin Action Panel
+                  </Link>
+                </div>
               </div>
               <WingProgressTracker isAdmin={true} userRole={role} />
             </div>
@@ -193,7 +199,7 @@ export default function TeamDashboard() {
 
       {/* Mobile Bottom Nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#0a0e12] border-t border-[#dfe7e0]/10 flex items-center justify-around z-50">
-        {allMobileItems.slice(0, 4).map(item => (
+        {allMobileItems.slice(0, 5).map(item => (
           <Link key={item.name} href={item.href} className="flex flex-col items-center justify-center w-full h-full text-[#78837c] hover:text-white">
             <item.icon className="w-5 h-5 mb-1" />
             <span className="text-[9px] uppercase tracking-wider">{item.name.replace(' Wing', '')}</span>
