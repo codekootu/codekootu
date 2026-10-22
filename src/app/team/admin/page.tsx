@@ -50,7 +50,6 @@ export default function AdminPanel() {
     setLoading(true);
     setDbError(null);
 
-    // Fetch all ideas
     const { data: ideaData, error: ideaErr } = await supabase
       .from('ideas')
       .select('*')
@@ -60,7 +59,6 @@ export default function AdminPanel() {
       console.error('Admin ideas fetch error:', ideaErr);
       setDbError(ideaErr.message);
     } else if (ideaData) {
-      // Keep only ideas that are pending determination
       const pending = (ideaData as IdeaItem[]).filter((i) => {
         const s = (i.status || '').toLowerCase();
         const fs = (i.final_status || '').toLowerCase();
@@ -75,7 +73,6 @@ export default function AdminPanel() {
       setIdeas(pending);
     }
 
-    // Fetch pending restock requests
     const { data: restockData } = await supabase
       .from('restock_requests')
       .select('*, profiles(full_name)')
@@ -132,7 +129,6 @@ export default function AdminPanel() {
       return;
     }
 
-    // Send canonical Title Case value to satisfy postgres enum if still attached
     const statusVal = decision === 'Approved' ? 'Approved' : 'Rejected';
 
     const { error: ideaError } = await supabase
@@ -275,4 +271,101 @@ export default function AdminPanel() {
                       </div>
 
                       <div className="flex flex-wrap gap-2 pt-1">
-                        {
+                        {votesList.length > 0 ? (
+                          votesList.map((v: IdeaVote, idx: number) => {
+                            const isAccepted = v.vote === 'accept' || v.recommendation === 'Approve' || v.vote === 'Approved';
+                            const voterName = v.user_name || 'Committee Member';
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono border ${
+                                  isAccepted
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                }`}
+                              >
+                                {isAccepted ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                                <span>{isAccepted ? 'Accepted by' : 'Rejected by'} {voterName}</span>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <span className="text-xs text-[#78837c] italic">No committee votes cast yet.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Final Action Controls */}
+                    <div className="flex flex-col md:flex-row gap-4 border-t border-[#dfe7e0]/10 pt-6">
+                      <div className="flex-1 flex gap-2">
+                        <select 
+                          value={currentWing}
+                          onChange={(e) => setSelectedWing({ ...selectedWing, [idea.id]: e.target.value })}
+                          className="bg-[#05070a] border border-[#dfe7e0]/15 rounded px-4 py-3 text-xs text-white outline-none focus:border-[#e0231c]"
+                        >
+                          <option value="software">Software Wing</option>
+                          <option value="hardware">Hardware Wing</option>
+                          <option value="operations">Operations Wing</option>
+                        </select>
+
+                        <button 
+                          onClick={() => handleDecision(idea.id, 'Approved', currentWing)}
+                          className="flex-1 py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded font-medium hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2 text-xs"
+                        >
+                          <CheckCircle className="w-4 h-4" /> Approve & Allocate
+                        </button>
+                      </div>
+
+                      <button 
+                        onClick={() => handleDecision(idea.id, 'Rejected')} 
+                        className="px-8 py-3 bg-red-500/10 text-red-400 border border-red-500/30 rounded font-medium hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 text-xs"
+                      >
+                        <XCircle className="w-4 h-4" /> Reject
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          restockRequests.length === 0 ? (
+            <div className="text-center py-20 border border-dashed border-[#dfe7e0]/20 rounded-lg">
+              <Package className="w-12 h-12 mx-auto text-emerald-500 mb-4" />
+              <h2 className="text-2xl font-medium mb-2 text-white">Inventory Optimal</h2>
+              <p className="text-[#78837c] text-xs">No pending restock requests from the Hardware wing.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {restockRequests.map((req) => (
+                <div key={req.id} className="bg-[#0a0e12] border border-[#dfe7e0]/10 p-6 rounded-lg flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-medium text-white mb-1">{req.component}</h3>
+                    <div className="text-sm text-[#aab4ad]">
+                      Requested {req.quantity} units • By {req.profiles?.full_name || 'Hardware Lead'}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handleRestockDecision(req.id, req.component, req.quantity, 'Approved')} 
+                      className="px-6 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded hover:bg-emerald-500/20 flex items-center gap-2 text-xs transition-colors"
+                    >
+                      <Check className="w-4 h-4" /> Approve
+                    </button>
+                    <button 
+                      onClick={() => handleRestockDecision(req.id, req.component, req.quantity, 'Rejected')} 
+                      className="px-6 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded hover:bg-red-500/20 flex items-center gap-2 text-xs transition-colors"
+                    >
+                      <X className="w-4 h-4" /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
+    </div>
+  );
+}
