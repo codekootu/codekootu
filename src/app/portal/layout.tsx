@@ -40,7 +40,7 @@ export default function PortalLayout({
           <div className="flex items-center gap-3">
             {/* Submit Button */}
             <Link
-              href="/portal/dashboard"
+              href="/portal/submit"
               className="text-xs font-mono px-3.5 py-1.5 rounded-full border border-red-500/40 text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-1"
             >
               <span className="text-sm leading-none">+</span> SUBMIT
