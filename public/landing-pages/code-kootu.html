@@ -1,41 +1,181 @@
-<!-- ============================================================ hero -->
-<section class="hero" id="hero" data-cam="0">
-  <div class="hero-top">
-    <!-- Accessible metadata for Google's compliance crawler -->
-    <div style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">
-      <h1>Code Kootu</h1>
-      <p>
-        Code Kootu is an engineering collective and open public portal where community members submit real-world problems for triage, prototyping, and open-source development. Google Authentication is used strictly for user verification, creator profiles, and brief tracking.
-      </p>
-      <nav>
-        <a href="/privacy">Privacy Policy</a>
-        <a href="/terms">Terms of Service</a>
-        <a href="mailto:codekootu@gmail.com">Contact</a>
-      </nav>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head><script>function __threeuiStorageImage(...args){const image=new Image(...args);const property=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");Object.defineProperty(image,"src",{configurable:true,get(){return property.get.call(this)},set(value){try{const url=new URL(value,document.baseURI);if(this.crossOrigin===null&&(url.href.startsWith("https://ublctyddhtbgaersvxxb.supabase.co/storage/v1/object/public/threeui-media/scene-images/")||url.origin===new URL(document.baseURI).origin))this.crossOrigin="anonymous"}catch{}property.set.call(this,value)}});return image;}
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Code Kootu — Where problems become prototypes</title>
+<meta name="description" content="A fifteen-member engineering collective crowdsourcing real community problems and shipping hybrid hardware-software prototypes.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2305070a'/%3E%3Ccircle cx='16' cy='17' r='8' fill='%23e0231c'/%3E%3Crect x='4' y='8' width='24' height='2.6' fill='%23dfe7e0'/%3E%3Crect x='7' y='13' width='18' height='2' fill='%23dfe7e0'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="secret-pathways-assets/fonts.css">
+<style>
+/* ============================================================= tokens */
+:root{
+  --ink:#05070a;          /* page black */
+  --ink-2:#0a0e12;        /* raised black */
+  --bone:#dfe7e0;         /* the pale sage white of the wordmark */
+  --bone-dim:#aab4ad;
+  --muted:#78837c;
+  --line:rgba(223,231,224,.13);
+  --line-soft:rgba(223,231,224,.07);
+  --vermilion:#e0231c;
+  --ember:#ff5a3c;
+  --gold:#c9a24a;
+  --pad:clamp(20px, 3.4vw, 56px);
+  --nav-h:84px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-io:cubic-bezier(.65,0,.35,1);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{ -webkit-text-size-adjust:100%; scroll-behavior:auto; }
+body{
+  margin:0; background:var(--ink); color:var(--bone);
+  font-family:'Onest',system-ui,-apple-system,'Helvetica Neue',sans-serif;
+  font-weight:300; font-size:16px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+body.is-locked{ overflow:hidden; height:100vh; }
+::selection{ background:var(--vermilion); color:#fff; }
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
-    <div class="eyebrow" data-rv="fade"><span class="dot"></span> Chapter 00 — The Collective</div>
-    <h2 class="display h-hero" aria-label="Where problems meet the makers.">
-      <span class="mask-line"><span>Where problems</span></span>
-      <span class="mask-line"><span>meet the</span></span>
-      <span class="mask-line"><span>makers.</span></span>
-    </h2>
-    <p class="hero-sub body" data-rv="up">A fifteen-member engineering collective crowdsourcing real community problems — and shipping hybrid prototypes in hardware, software, or both.</p>
-  </div>
+/* ============================================================= layers */
+#gl{
+  position:fixed; inset:0; width:100%; height:100%;
+  display:block; z-index:0; background:#05070a;
+}
+#grain{
+  position:fixed; inset:-1px; z-index:60; pointer-events:none;
+  opacity:.055; mix-blend-mode:overlay;
+  background-repeat:repeat; background-size:180px 180px;
+}
+#vignette{
+  position:fixed; inset:0; z-index:55; pointer-events:none;
+  background:radial-gradient(125% 95% at 50% 42%, transparent 40%, rgba(2,4,6,.55) 100%);
+}
+.page{ position:relative; z-index:10; }
 
-  <div class="hero-spacer"></div>
+/* ============================================================= type */
+.eyebrow{
+  font-size:10px; font-weight:500; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--bone-dim); text-shadow:0 1px 16px rgba(3,6,8,.9);
+}
+.jp{ font-family:'NotoJP','Onest',sans-serif; font-weight:400; }
+h1,h2,h3{ font-weight:400; margin:0; letter-spacing:-.005em; }
+.display{
+  text-transform:uppercase; line-height:1.055; letter-spacing:-.012em;
+  font-weight:400; text-shadow:0 2px 34px rgba(3,6,8,.72);
+}
+.h-hero{ font-size:clamp(26px,3.05vw,46px); }
+.h-sec{ font-size:clamp(30px,4.0vw,60px); }
+.body-lg{ font-size:clamp(14px,1.02vw,17px); line-height:1.72; color:#b4bfb7; font-weight:300; text-shadow:0 1px 20px rgba(3,6,8,.88); }
+.body{ font-size:14px; line-height:1.68; color:#9aa5a0; font-weight:300; text-shadow:0 1px 18px rgba(3,6,8,.85); }
+.num{ font-size:clamp(26px,2.5vw,36px); font-weight:300; letter-spacing:-.02em; color:var(--bone); font-variant-numeric:tabular-nums; }
 
-  <div class="hero-foot">
-    <div class="hero-cue" data-rv="fade"><span>Scroll to enter</span><span class="track"><i></i></span></div>
-    <div class="chapters" id="chips">
-      <div class="chip" data-chip="0" data-rv="up" data-cursor><span class="num">01</span>
-        <span class="tx"><b>The Brief</b><p>Submit a real problem. We read every one.</p></span></div>
-      <div class="chip" data-chip="1" data-rv="up" data-cursor><span class="num">02</span>
-        <span class="tx"><b>The Pipeline</b><p>Triage. Three scorecards. One vote.</p></span></div>
-      <div class="chip" data-chip="2" data-rv="up" data-cursor><span class="num">03</span>
-        <span class="tx"><b>The Wings</b><p>Software, hardware, ops pick up the sprint.</p></span></div>
-      <div class="chip" data-chip="3" data-rv="up" data-cursor><span class="num">04</span>
-        <span class="tx"><b>The Call</b><p>Deployed, documented, open for votes.</p></span></div>
-    </div>
-  </div>
-</section>
+/* ============================================================= reveal */
+[data-rv]{ opacity:0; }
+[data-rv="up"]{ transform:translate3d(0,26px,0); }
+[data-rv="fade"]{ transform:none; }
+[data-rv].rv-in{ opacity:1; transform:none;
+  transition:opacity .9s var(--ease-out), transform 1.05s var(--ease-out); }
+.mask-line{ display:block; overflow:hidden; }
+.mask-line:not(.word-reveal) > span{ display:block; transform:translate3d(0,110%,0); }
+.rv-in .mask-line:not(.word-reveal) > span, .mask-line:not(.word-reveal).rv-in > span{ transform:none; }
+.mask-line:not(.word-reveal) > span{ transition:transform 1.05s var(--ease-out); }
+.word-mask{ display:inline-block; overflow:hidden; vertical-align:top; }
+.word{
+  display:inline-block; opacity:0; transform:translate3d(0,112%,0); will-change:transform,opacity;
+  transition:transform .82s var(--ease-out), opacity .5s var(--ease-out);
+  transition-delay:var(--word-delay,0ms);
+}
+.word-reveal.rv-in .word{ opacity:1; transform:none; }
+
+/* ============================================================= preloader */
+#pre{
+  position:fixed; inset:0; z-index:100; background:#05070a;
+  display:flex; align-items:center; justify-content:center;
+  transition:opacity .8s var(--ease), visibility .8s;
+}
+#pre.done{ opacity:0; visibility:hidden; pointer-events:none; }
+.pre-in{ width:min(420px,74vw); text-align:center; }
+.pre-mark{ margin:0 auto 26px; width:44px; height:44px; opacity:.9; }
+.pre-mark svg{ width:100%; height:100%; display:block; }
+.pre-jp{ font-size:12px; letter-spacing:.5em; color:var(--bone-dim); margin-bottom:20px; }
+.pre-bar{ position:relative; height:1px; background:rgba(223,231,224,.14); overflow:hidden; }
+.pre-bar i{ position:absolute; inset:0 100% 0 0; background:var(--bone); transition:right .35s linear; }
+.pre-meta{ display:flex; justify-content:space-between; margin-top:12px;
+  font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+.pre-meta b{ font-weight:500; color:var(--bone-dim); font-variant-numeric:tabular-nums; }
+
+/* ============================================================= nav */
+.nav{
+  position:fixed; top:0; left:0; width:var(--vw, 100%); height:var(--nav-h); z-index:50;
+  display:flex; align-items:center; gap:24px; padding:0 var(--pad);
+  transition:transform .55s var(--ease);
+}
+.nav::before{
+  content:''; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background:rgba(5,7,10,.62);
+  backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1);
+  opacity:0; transition:opacity .5s linear;
+}
+.nav.stuck::before{ opacity:1; }
+.nav::after{
+  content:''; position:absolute; left:var(--pad); right:var(--pad); bottom:0; height:1px;
+  background:var(--line-soft); opacity:0; transition:opacity .5s;
+}
+.nav.stuck::after{ opacity:1; }
+.nav.hide{ transform:translate3d(0,-101%,0); }
+.brand{ display:flex; align-items:center; gap:11px; flex:0 0 auto; }
+.brand svg{ width:34px; height:34px; display:block; }
+.brand-tx{ display:flex; flex-direction:column; line-height:1; gap:3px; }
+.brand-tx b{ font-size:12px; font-weight:500; letter-spacing:.26em; }
+.brand-tx i{ font-style:normal; font-size:8px; letter-spacing:.34em; color:var(--muted); }
+.nav-links{ display:flex; gap:clamp(18px,2.6vw,46px); margin-left:auto; }
+.nav-link{
+  position:relative; font-size:11px; font-weight:500; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--bone-dim); display:block; height:15px; line-height:15px; overflow:hidden;
+}
+.nav-link span{ display:block; height:15px; line-height:15px; transition:transform .55s var(--ease-out), color .3s; }
+.nav-link .alt{ position:absolute; inset:0; transform:translate3d(0,100%,0); color:var(--bone); letter-spacing:.32em; }
+.nav-link:hover span{ transform:translate3d(0,-100%,0); }
+.nav-link:hover .alt{ transform:none; }
+.nav-link.on{ color:var(--bone); }
+.nav-link.on::after{ content:''; position:absolute; left:0; bottom:0; width:100%; height:1px; background:var(--vermilion); }
+.nav-burger{ margin-left:clamp(18px,2.6vw,42px); width:26px; height:16px; position:relative; flex:0 0 auto; }
+.nav-burger i{ position:absolute; right:0; height:1.5px; background:var(--bone); transition:width .45s var(--ease-out), transform .45s var(--ease-out); }
+.nav-burger i:nth-child(1){ top:4px; width:26px; }
+.nav-burger i:nth-child(2){ top:11px; width:17px; }
+.nav-burger:hover i:nth-child(2){ width:26px; }
+.nav-burger:hover i:nth-child(1){ width:17px; }
+
+/* ============================================================= hero */
+.hero{ position:relative; min-height:100svh; padding:0 var(--pad); display:flex; flex-direction:column; }
+.hero::before{ content:''; position:absolute; left:0; right:0; top:0; height:46%; pointer-events:none;
+  background:linear-gradient(rgba(3,6,9,.72), rgba(3,6,9,.34) 46%, transparent); }
+.hero-top{ padding-top:calc(var(--nav-h) + clamp(12px,2.6vh,34px)); max-width:min(560px,46vw); position:relative; z-index:2; }
+.hero-top .eyebrow{ display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+.hero-top .eyebrow .dot{ width:5px; height:5px; border-radius:50%; background:var(--vermilion); box-shadow:0 0 10px var(--vermilion); }
+.hero h1, .hero h2{ margin-bottom:18px; }
+.hero-sub{ max-width:322px; text-shadow:0 1px 26px rgba(3,6,8,.95); }
+.hero-spacer{ flex:1 1 auto; min-height:clamp(140px,26vh,300px); }
+.hero-foot{ padding-bottom:clamp(22px,4.2vh,42px); position:relative; z-index:2; }
+.hero-cue{ display:flex; align-items:center; justify-content:flex-end; gap:12px; margin-bottom:14px;
+  font-size:9px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); }
+.hero-cue .track{ width:54px; height:1px; background:var(--line); position:relative; overflow:hidden; }
+.hero-cue .track i{ position:absolute; inset:0; background:var(--bone); transform-origin:left;
+  animation:cue 2.8s var(--ease-io) infinite; }
+.chapters{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(14px,2.4vw,40px);
+  border-top:1px solid var(--line-soft); padding-top:18px;
+}
+.chip{ display:flex; gap:14px; align-items:flex-start; cursor:pointer; }
+.chip .num{ line-height:1; flex:0 0 auto; transition:color .4s, transform .5s var(--ease-out); }
+.chip .tx{ min-width:0; padding-top:3px; }
+.chip b{ display:block; font-size:10px; font-weight:500; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--bone-dim); margin-bottom:6px; transition:color .4s;
+  text-shadow:0 1px 16px rgba(3,6,8,.9); }
+.chip p{ margin:0; font-size:11px; line-height:1.5; color:#7d878
