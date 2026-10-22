@@ -9,7 +9,6 @@ import {
   Loader2, Terminal, ArrowRight, ShieldCheck 
 } from 'lucide-react';
 
-// 1. Embedded 3D Ambient Mesh Canvas
 function Auth3DCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -37,7 +36,6 @@ function Auth3DCanvas() {
     };
     window.addEventListener('mousemove', handleMouseMove);
 
-    // 3D Particles
     const NUM_PARTICLES = 40;
     const particles: { x: number; y: number; z: number; vx: number; vy: number; vz: number }[] = [];
     for (let i = 0; i < NUM_PARTICLES; i++) {
@@ -130,7 +128,6 @@ export default function TeamLoginPage() {
   const [authSuccess, setAuthSuccess] = useState(false);
   const [assignedRole, setAssignedRole] = useState<string>('');
 
-  // 3D Card Hover Glare
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [transform, setTransform] = useState<string>('');
   const [glare, setGlare] = useState<{ x: number; y: number; opacity: number }>({ x: 50, y: 50, opacity: 0 });
@@ -173,7 +170,6 @@ export default function TeamLoginPage() {
     }
 
     if (authData.user) {
-      // Query role from profiles table
       const { data: profile } = await supabase
         .from('profiles')
         .select('role, full_name')
@@ -182,11 +178,8 @@ export default function TeamLoginPage() {
 
       const userRole = profile?.role || 'authorized_member';
       setAssignedRole(userRole.replace('_', ' ').toUpperCase());
-      
-      // Trigger green checkmark verification stage
       setAuthSuccess(true);
 
-      // Brief transition delay to show green check telemetry
       setTimeout(() => {
         router.push('/team/dashboard');
       }, 1600);
@@ -197,7 +190,6 @@ export default function TeamLoginPage() {
     <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] font-sans flex flex-col justify-between p-6 sm:p-12 relative overflow-hidden selection:bg-[#e0231c]/30">
       <Auth3DCanvas />
 
-      {/* Top Bar */}
       <header className="relative z-10 flex items-center justify-between max-w-5xl mx-auto w-full">
         <Link 
           href="/" 
@@ -211,7 +203,6 @@ export default function TeamLoginPage() {
         </span>
       </header>
 
-      {/* Main Login Viewport */}
       <main className="relative z-10 max-w-md w-full mx-auto my-auto py-8">
         <div
           ref={cardRef}
@@ -224,7 +215,6 @@ export default function TeamLoginPage() {
           }}
           className="relative rounded-2xl bg-[#0a0e12]/90 backdrop-blur-2xl border border-[#dfe7e0]/10 p-8 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden"
         >
-          {/* Dynamic 3D Glare */}
           <div
             className="pointer-events-none absolute -inset-px transition-opacity duration-300"
             style={{
@@ -235,7 +225,6 @@ export default function TeamLoginPage() {
 
           <div className="relative z-10">
             {authSuccess ? (
-              /* Green Verification State */
               <div className="py-8 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
                 <div className="relative flex items-center justify-center">
                   <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl animate-pulse" />
@@ -257,7 +246,6 @@ export default function TeamLoginPage() {
                 </div>
               </div>
             ) : (
-              /* Credential Form State */
               <div className="space-y-6">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#e0231c] block mb-2">
@@ -286,4 +274,60 @@ export default function TeamLoginPage() {
                     <div className="relative">
                       <Mail className="w-4 h-4 text-[#78837c] absolute left-3.5 top-3 pointer-events-none" />
                       <input
-                        type="email
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="operator@codekootu.com"
+                        className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#78837c]/60 outline-none focus:border-[#e0231c] transition-colors font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-mono tracking-wider text-[#78837c] block">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-[#78837c] absolute left-3.5 top-3 pointer-events-none" />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#78837c]/60 outline-none focus:border-[#e0231c] transition-colors font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded-xl text-xs font-medium tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(224,35,28,0.25)] hover:shadow-[0_0_25px_rgba(224,35,28,0.4)] disabled:opacity-50 mt-2"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <span>Sign In</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
+      <footer className="relative z-10 max-w-5xl mx-auto w-full flex items-center justify-between text-[11px] text-[#78837c] font-mono border-t border-[#dfe7e0]/5 pt-4">
+        <span>Protected by Row Level Security</span>
+        <span className="flex items-center gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> End-to-End Cryptographic Session
+        </span>
+      </footer>
+    </div>
+  );
+}
