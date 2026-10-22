@@ -3,9 +3,9 @@ import './globals.css';
 import FloatingTeamButton from '@/components/FloatingTeamButton';
 
 export const metadata: Metadata = {
-  title: 'Code Kootu — Where problems become prototypes',
-  description:
-    'A fifteen-member engineering collective crowdsourcing real community problems and shipping hybrid hardware-software prototypes.',
+  title: "Code Kootu",
+  description: "15 Minds. Multiple Disciplines. One Collective.",
+  // ... keep the rest of your openGraph stuff if you have it
 };
 
 export const viewport: Viewport = {
