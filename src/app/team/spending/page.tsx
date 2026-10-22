@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Wallet, ArrowLeft, Plus, X, MessageSquare, AlertTriangle, 
-  CheckCircle2, Send, ShieldAlert, ChevronDown, ChevronUp 
+  CheckCircle2, XCircle, Send, ShieldAlert, ChevronDown, ChevronUp,
+  Sparkles
 } from 'lucide-react';
 import { Spending3DCanvas } from '@/components/team/Spending3DCanvas';
 
@@ -56,6 +57,22 @@ export default function SpendingPage() {
   const [disputeInput, setDisputeInput] = useState<{ [key: string]: string }>({});
   const [disputeMode, setDisputeMode] = useState<string | null>(null);
 
+  // 3D Card Tilt State
+  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    setTilt({ rx: -(y / rect.height) * 12, ry: (x / rect.width) * 12 });
+  };
+
+  const handleCardMouseLeave = () => {
+    setTilt({ rx: 0, ry: 0 });
+  };
+
   // Auth & Profile Fetch
   useEffect(() => {
     async function init() {
@@ -103,19 +120,20 @@ export default function SpendingPage() {
     };
   }, [supabase, fetchExpenses]);
 
-  // Lead Roster Identification
-  const userRole = profile?.role || '';
+  // STRICT Identification Logic
+  const userRole = (profile?.role || '').toLowerCase();
   const email = (profile?.email || '').toLowerCase();
   const fullName = (profile?.full_name || '').toLowerCase();
 
-  const isNoel = email.includes('noel') || fullName.includes('noel') || userRole === 'super_admin';
+  // ONLY Noel is Super Admin
+  const isNoel = userRole === 'super_admin' || email.includes('noel') || fullName.includes('noel');
   const isAustin = email.includes('austin') || fullName.includes('austin');
   const isBestin = email.includes('bestin') || fullName.includes('bestin');
 
   // ONLY Noel, Austin, and Bestin can suggest expenses
   const canSuggestExpense = isNoel || isAustin || isBestin || profile?.can_suggest_expense === true;
 
-  // ONLY Noel (Super Admin) can approve or reject expenses
+  // ONLY Noel can approve or reject expenses (Neither Austin nor Bestin can)
   const canApproveExpense = isNoel;
 
   const totalApproved = expenses
@@ -202,7 +220,7 @@ export default function SpendingPage() {
     }
   };
 
-  // Approve / Settle Expense (ONLY Noel)
+  // Settle Expense: Approve or Reject (ONLY Noel)
   const handleStatusChange = async (expenseId: string, nextStatus: 'approved' | 'rejected') => {
     if (!canApproveExpense) return;
     await supabase.from('expenses').update({ status: nextStatus, dispute_note: null }).eq('id', expenseId);
@@ -236,15 +254,25 @@ export default function SpendingPage() {
       </div>
 
       <div className="relative z-10 max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl bg-gradient-to-r from-[#0a0e12]/90 via-[#0e131b]/80 to-[#0a0e12]/90 border border-[#dfe7e0]/10 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-[#e0231c]/30">
+        {/* Header Section with 3D Mouse Perspective Tilt */}
+        <div 
+          ref={cardRef}
+          onMouseMove={handleCardMouseMove}
+          onMouseLeave={handleCardMouseLeave}
+          style={{
+            transform: `perspective(1000px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
+            transition: 'transform 0.15s ease-out',
+          }}
+          className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-7 rounded-2xl bg-gradient-to-r from-[#0a0e12]/95 via-[#0e131b]/90 to-[#0a0e12]/95 border border-[#dfe7e0]/15 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] hover:border-[#e0231c]/40"
+        >
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2.5 rounded-xl bg-[#e0231c]/10 text-[#e0231c] border border-[#e0231c]/30 shadow-[0_0_15px_rgba(224,35,28,0.25)]">
-                <Wallet className="w-5 h-5 animate-pulse" />
+              <div className="p-3 rounded-xl bg-[#e0231c]/10 text-[#e0231c] border border-[#e0231c]/30 shadow-[0_0_20px_rgba(224,35,28,0.35)]">
+                <Wallet className="w-6 h-6 animate-pulse" />
               </div>
-              <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-light text-white tracking-tight flex items-center gap-2">
                 Spending Ledger
+                <Sparkles className="w-4 h-4 text-[#2dd4bf] animate-spin" style={{ animationDuration: '6s' }} />
               </h1>
             </div>
             <p className="text-xs text-[#78837c] max-w-md">
@@ -253,11 +281,11 @@ export default function SpendingPage() {
           </div>
 
           <div className="flex items-center gap-6">
-            <div className="text-right p-3 rounded-xl bg-[#05070a]/60 border border-[#dfe7e0]/5">
+            <div className="text-right p-4 rounded-xl bg-[#05070a]/70 border border-[#dfe7e0]/10 shadow-inner">
               <span className="text-[10px] uppercase tracking-widest text-[#78837c] block">
                 Total Approved Pool
               </span>
-              <span className="text-2xl md:text-3xl font-mono font-medium text-white tracking-tight drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
+              <span className="text-2xl md:text-3xl font-mono font-medium text-white tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.25)]">
                 ₹{totalApproved.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -266,7 +294,7 @@ export default function SpendingPage() {
             {canSuggestExpense && (
               <button
                 onClick={() => setShowForm(!showForm)}
-                className="px-5 py-3 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded-xl text-xs font-medium transition-all shadow-[0_0_20px_rgba(224,35,28,0.35)] hover:shadow-[0_0_25px_rgba(224,35,28,0.6)] flex items-center gap-2 active:scale-95"
+                className="px-5 py-3.5 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded-xl text-xs font-medium transition-all shadow-[0_0_20px_rgba(224,35,28,0.4)] hover:shadow-[0_0_30px_rgba(224,35,28,0.7)] flex items-center gap-2 active:scale-95"
               >
                 {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                 {showForm ? 'Cancel' : 'Suggest Expense'}
@@ -279,7 +307,7 @@ export default function SpendingPage() {
         {showForm && canSuggestExpense && (
           <form 
             onSubmit={handleAddExpense} 
-            className="p-6 bg-[#0a0e12]/90 backdrop-blur-md border border-[#dfe7e0]/15 rounded-xl space-y-4 animate-in fade-in shadow-2xl"
+            className="p-6 bg-[#0a0e12]/95 backdrop-blur-md border border-[#dfe7e0]/15 rounded-xl space-y-4 animate-in fade-in shadow-2xl"
           >
             <h3 className="text-xs uppercase tracking-widest text-[#dfe7e0] font-medium">
               Suggest New Expense
@@ -354,7 +382,7 @@ export default function SpendingPage() {
         )}
 
         {/* Expenses Table */}
-        <div className="bg-[#0a0e12]/90 backdrop-blur-md border border-[#dfe7e0]/10 rounded-xl overflow-hidden shadow-2xl">
+        <div className="bg-[#0a0e12]/95 backdrop-blur-md border border-[#dfe7e0]/10 rounded-xl overflow-hidden shadow-2xl">
           <div className="grid grid-cols-12 gap-2 px-6 py-3.5 border-b border-[#dfe7e0]/10 text-[10px] uppercase tracking-wider text-[#78837c]">
             <span className="col-span-2">Date</span>
             <span className="col-span-3">Event / Item</span>
@@ -366,8 +394,9 @@ export default function SpendingPage() {
 
           <div className="divide-y divide-[#dfe7e0]/5">
             {expenses.length === 0 ? (
-              <div className="py-16 text-center text-xs text-[#78837c]">
-                No expenses logged yet.
+              <div className="py-20 text-center text-xs text-[#78837c] flex flex-col items-center justify-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#2dd4bf] opacity-60" />
+                <span>The spending ledger is currently clean.</span>
               </div>
             ) : (
               expenses.map((expense) => {
@@ -376,7 +405,7 @@ export default function SpendingPage() {
                 const commentCount = expense.comments?.length || 0;
 
                 return (
-                  <div key={expense.id} className="hover:bg-[#111722]/40 transition-colors">
+                  <div key={expense.id} className="hover:bg-[#111722]/50 transition-colors">
                     <div className="grid grid-cols-12 gap-2 px-6 py-4 items-center text-xs">
                       <span className="col-span-2 text-[#78837c] font-mono">
                         {new Date(expense.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -400,7 +429,7 @@ export default function SpendingPage() {
                         {expense.payment_method}
                       </span>
 
-                      {/* Status & Options */}
+                      {/* Status & Actions */}
                       <div className="col-span-2 flex items-center justify-end gap-2">
                         {expense.status === 'approved' && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -412,27 +441,45 @@ export default function SpendingPage() {
                             Pending
                           </span>
                         )}
+                        {expense.status === 'rejected' && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-neutral-500/10 text-neutral-400 border border-neutral-500/20">
+                            Rejected
+                          </span>
+                        )}
                         {expense.status === 'disputed' && (
                           <span className="px-2 py-0.5 rounded-full text-[10px] bg-red-500/10 text-red-400 border border-red-500/20">
                             Review Flagged
                           </span>
                         )}
 
-                        {/* ONLY Noel (Super Admin) gets the button to approve */}
-                        {canApproveExpense && expense.status !== 'approved' && (
-                          <button
-                            onClick={() => handleStatusChange(expense.id, 'approved')}
-                            className="p-1 hover:text-emerald-400 text-[#78837c] transition-colors"
-                            title="Approve & Settle Expense (Super Admin)"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                          </button>
+                        {/* ONLY Noel (Super Admin) gets both Approve (Tick) & Reject (Cross) */}
+                        {canApproveExpense && (
+                          <div className="flex items-center gap-1 pl-1">
+                            {expense.status !== 'approved' && (
+                              <button
+                                onClick={() => handleStatusChange(expense.id, 'approved')}
+                                className="p-1 hover:text-emerald-400 text-[#78837c] transition-colors"
+                                title="Approve Expense (Super Admin)"
+                              >
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                              </button>
+                            )}
+                            {expense.status !== 'rejected' && (
+                              <button
+                                onClick={() => handleStatusChange(expense.id, 'rejected')}
+                                className="p-1 hover:text-red-400 text-[#78837c] transition-colors"
+                                title="Reject Expense (Super Admin)"
+                              >
+                                <XCircle className="w-4 h-4 text-red-500" />
+                              </button>
+                            )}
+                          </div>
                         )}
 
                         {/* Accordion toggle for feedback */}
                         <button
                           onClick={() => setExpandedExpenseId(isExpanded ? null : expense.id)}
-                          className="p-1 text-[#78837c] hover:text-white flex items-center gap-1 transition-colors"
+                          className="p-1 text-[#78837c] hover:text-white flex items-center gap-1 transition-colors ml-1"
                           title="View Comments & Actions"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
