@@ -150,7 +150,7 @@ export default function PublicPortalLoginPage() {
     setGlare({ x: 50, y: 50, opacity: 0 });
   };
 
-  const handleGoogleLogin = async () => {
+    const handleGoogleLogin = async () => {
     setLoadingGoogle(true);
     setErrorMsg(null);
 
@@ -160,9 +160,28 @@ export default function PublicPortalLoginPage() {
       provider: 'google',
       options: {
         redirectTo: `${origin}/auth/callback?next=/portal/dashboard`,
-        skipBrowserRedirect: true,
+        skipBrowserRedirect: true, // Keep this to prevent automatic redirects
       },
     });
+
+    if (error) {
+      setErrorMsg(error.message);
+      setLoadingGoogle(false);
+      return;
+    }
+
+    if (data?.url) {
+      // Check if we are inside an iframe (like a Vercel preview)
+      if (window.self !== window.top) {
+        // Open Google login in a new top-level tab
+        window.open(data.url, '_blank');
+        setLoadingGoogle(false); // Stop the loading spinner on the original tab
+      } else {
+        // Normal redirect if already in a top-level window
+        window.location.href = data.url;
+      }
+    }
+  };
 
     if (error) {
       setErrorMsg(error.message);
