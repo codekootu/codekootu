@@ -171,6 +171,18 @@ export default function PublicPortalLoginPage() {
     }
 
     if (data?.url) {
+      // ✅ Simply redirect the current window
+      window.location.href = data.url;
+    }
+  };
+
+    if (error) {
+      setErrorMsg(error.message);
+      setLoadingGoogle(false);
+      return;
+    }
+
+    if (data?.url) {
       if (window.top) {
         window.top.location.href = data.url;
       } else {
