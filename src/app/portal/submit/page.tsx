@@ -19,23 +19,29 @@ export default function SubmitIdea() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.push('/login'); return; }
 
-    const { error } = await supabase.from('ideas').insert({
+    // Call the server action instead of inserting directly
+    const result = await submitIdeaAction({
       user_id: session.user.id,
-      title, description, category, archetype, urgency, status: 'Received'
+      title, 
+      description, 
+      category, 
+      archetype, 
+      urgency, 
+      status: 'Received'
     });
 
-    if (!error) {
+    if (result.success) {
       setSuccess(true);
       setTimeout(() => router.push('/portal/dashboard'), 2000);
     } else {
-      alert("Error submitting idea: " + error.message);
+      alert("Error submitting idea: " + result.error);
       setLoading(false);
     }
   };
