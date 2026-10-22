@@ -8,7 +8,6 @@ import {
   ArrowRight, CheckCircle2, RefreshCw, KeyRound, Radio
 } from 'lucide-react';
 
-// 1. Embedded 3D Cyber-Teal Particle Constellation Canvas
 function Public3DCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -77,7 +76,6 @@ function Public3DCanvas() {
 
         projected.push({ px, py, scale, alpha });
 
-        // Node
         ctx.beginPath();
         ctx.arc(px, py, 2.2 * scale, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(45, 212, 191, ${alpha})`;
@@ -87,7 +85,6 @@ function Public3DCanvas() {
         ctx.shadowBlur = 0;
       }
 
-      // Proximity links
       for (let i = 0; i < projected.length; i++) {
         for (let j = i + 1; j < projected.length; j++) {
           const dx = projected[i].px - projected[j].px;
@@ -128,7 +125,6 @@ export default function PublicPortalLoginPage() {
   const [magicSent, setMagicSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // 3D Perspective Card Tilt
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [transform, setTransform] = useState<string>('');
   const [glare, setGlare] = useState<{ x: number; y: number; opacity: number }>({ x: 50, y: 50, opacity: 0 });
@@ -154,7 +150,6 @@ export default function PublicPortalLoginPage() {
     setGlare({ x: 50, y: 50, opacity: 0 });
   };
 
-  // Google SSO Handler
   const handleGoogleLogin = async () => {
     setLoadingGoogle(true);
     setErrorMsg(null);
@@ -172,7 +167,6 @@ export default function PublicPortalLoginPage() {
     }
   };
 
-  // Magic Link Dispatch Handler
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoadingMagic(true);
@@ -199,7 +193,6 @@ export default function PublicPortalLoginPage() {
     <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] font-sans flex flex-col justify-between p-6 sm:p-12 relative overflow-hidden selection:bg-[#2dd4bf]/30">
       <Public3DCanvas />
 
-      {/* Top Header */}
       <header className="relative z-10 flex items-center justify-between max-w-md mx-auto w-full">
         <Link 
           href="/" 
@@ -213,7 +206,6 @@ export default function PublicPortalLoginPage() {
         </span>
       </header>
 
-      {/* Centerpiece 3D Card */}
       <main className="relative z-10 max-w-md w-full mx-auto my-auto py-8">
         <div
           ref={cardRef}
@@ -226,7 +218,6 @@ export default function PublicPortalLoginPage() {
           }}
           className="relative rounded-3xl bg-[#0a0e12]/90 backdrop-blur-2xl border border-[#dfe7e0]/10 p-8 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden"
         >
-          {/* Dynamic Teal Holographic Glare */}
           <div
             className="pointer-events-none absolute -inset-px transition-opacity duration-300"
             style={{
@@ -236,8 +227,6 @@ export default function PublicPortalLoginPage() {
           />
 
           <div className="relative z-10 space-y-6">
-            
-            {/* Header info */}
             <div className="text-center space-y-2">
               <div className="inline-flex p-3 rounded-2xl bg-[#2dd4bf]/10 border border-[#2dd4bf]/20 text-[#2dd4bf] shadow-[0_0_25px_rgba(45,212,191,0.25)]">
                 <Sparkles className="w-6 h-6 animate-pulse" />
@@ -257,7 +246,6 @@ export default function PublicPortalLoginPage() {
             )}
 
             {magicSent ? (
-              /* Magic Link Dispatch Confirmation Screen */
               <div className="p-6 rounded-2xl bg-[#05070a]/90 border border-emerald-500/20 text-center space-y-4 animate-in fade-in duration-300">
                 <div className="inline-flex p-3 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                   <CheckCircle2 className="w-8 h-8" />
@@ -276,9 +264,7 @@ export default function PublicPortalLoginPage() {
                 </button>
               </div>
             ) : (
-              /* Both Sign-In Channels */
               <div className="space-y-5">
-                {/* 1. Primary Google SSO Button */}
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loadingGoogle}
@@ -297,7 +283,6 @@ export default function PublicPortalLoginPage() {
                   <span>Continue with Google</span>
                 </button>
 
-                {/* Cyber Divider */}
                 <div className="relative flex items-center justify-center">
                   <div className="border-t border-[#dfe7e0]/10 w-full" />
                   <span className="bg-[#0a0e12] px-3 text-[10px] uppercase font-mono text-[#78837c] tracking-widest absolute">
@@ -305,7 +290,6 @@ export default function PublicPortalLoginPage() {
                   </span>
                 </div>
 
-                {/* 2. Magic Link Email Form */}
                 <form onSubmit={handleMagicLink} className="space-y-3">
                   <div className="space-y-1">
                     <label className="text-[10px] uppercase font-mono tracking-wider text-[#78837c] block">
@@ -343,7 +327,6 @@ export default function PublicPortalLoginPage() {
               </div>
             )}
 
-            {/* Switch to Door 02 */}
             <div className="pt-2 border-t border-[#dfe7e0]/5 text-center">
               <Link 
                 href="/team/login" 
@@ -352,12 +335,10 @@ export default function PublicPortalLoginPage() {
                 Are you a verified team member? Switch to Door 02 &rarr;
               </Link>
             </div>
-
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="relative z-10 max-w-md mx-auto w-full text-center text-[10px] text-[#78837c] font-mono flex items-center justify-center gap-1.5">
         <ShieldCheck className="w-3.5 h-3.5 text-[#2dd4bf]" />
         <span>Open Public Innovation Gateway</span>
