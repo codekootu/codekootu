@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft, Loader2, ShieldAlert, KeyRound, 
@@ -119,7 +118,6 @@ function TeamCanvas() {
 
 export default function TeamWorkbenchLoginPage() {
   const supabase = createClient();
-  const router = useRouter();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -156,8 +154,10 @@ export default function TeamWorkbenchLoginPage() {
     setLoading(true);
     setErrorMsg(null);
 
-    // If team accounts use email formats: allow raw email or append domain
-    const emailToUse = username.includes('@') ? username.trim() : `${username.trim()}@codekootu.codes`;
+    const trimmedInput = username.trim();
+    const emailToUse = trimmedInput.includes('@')
+      ? trimmedInput
+      : `${trimmedInput}@codekootu.codes`;
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: emailToUse,
@@ -170,9 +170,11 @@ export default function TeamWorkbenchLoginPage() {
       return;
     }
 
-    if (data.session) {
-      router.push('/team/workbench');
-      router.refresh();
+    if (data?.session) {
+      // Hard redirect ensures cookies are attached to the SSR request
+      window.location.href = '/team/dashboard';
+    } else {
+      setLoading(false);
     }
   };
 
@@ -244,7 +246,7 @@ export default function TeamWorkbenchLoginPage() {
                     required
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="callsign or member@codekootu.codes"
+                    placeholder="member@codekootu.codes"
                     className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#78837c]/60 outline-none focus:border-[#e0231c] transition-colors font-mono"
                   />
                 </div>
