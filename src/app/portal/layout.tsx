@@ -1,10 +1,24 @@
+'use client';
+
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { LogOut } from 'lucide-react';
 
 export default function PortalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
+
   return (
     <div className="min-h-screen bg-[#05070a] text-white flex flex-col">
       {/* Top Navigation Bar */}
@@ -23,7 +37,7 @@ export default function PortalLayout({
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Submit Button */}
             <Link
               href="/portal/dashboard"
@@ -52,6 +66,15 @@ export default function PortalLayout({
                 />
               </svg>
             </Link>
+
+            {/* Sign Out Button */}
+            <button
+              onClick={handleSignOut}
+              className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 hover:text-red-400 hover:border-red-500/30 transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
