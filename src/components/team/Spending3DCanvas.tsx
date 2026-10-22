@@ -23,14 +23,14 @@ export function Spending3DCanvas() {
     window.addEventListener('resize', handleResize);
 
     // Mouse tracking for 3D parallax
-    let mouse = { x: width / 2, y: height / 2, targetX: width / 2, targetY: height / 2 };
+    const mouse = { x: width / 2, y: height / 2, targetX: width / 2, targetY: height / 2 };
     const handleMouseMove = (e: MouseEvent) => {
       mouse.targetX = e.clientX;
       mouse.targetY = e.clientY;
     };
     window.addEventListener('mousemove', handleMouseMove);
 
-    // 3D Nodes
+    // 3D Starfield Nodes
     const NUM_NODES = 42;
     interface Node3D {
       x: number;
@@ -69,9 +69,9 @@ export function Spending3DCanvas() {
     ];
 
     const cubeEdges = [
-      [0, 1], [1, 2], [2, 3], [3, 0], // back face
-      [4, 5], [5, 6], [6, 7], [7, 4], // front face
-      [0, 4], [1, 5], [2, 6], [3, 7], // connecting edges
+      [0, 1], [1, 2], [2, 3], [3, 0],
+      [4, 5], [5, 6], [6, 7], [7, 4],
+      [0, 4], [1, 5], [2, 6], [3, 7],
     ];
 
     let rotX = 0.4;
@@ -108,7 +108,7 @@ export function Spending3DCanvas() {
 
         ctx.beginPath();
         ctx.arc(px, py, n.size * scale, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(224, 35, 28, ${alpha})`; // Crimson theme glow
+        ctx.fillStyle = `rgba(224, 35, 28, ${alpha})`;
         ctx.shadowBlur = 8;
         ctx.shadowColor = '#e0231c';
         ctx.fill();
@@ -140,13 +140,11 @@ export function Spending3DCanvas() {
       const cubeCenterY = width > 768 ? 160 : 130;
 
       const rotatedVertices = cubeVertices.map(([x, y, z]) => {
-        // Rotate around Y
         const cosY = Math.cos(rotY);
         const sinY = Math.sin(rotY);
         const x1 = x * cosY - z * sinY;
         const z1 = z * cosY + x * sinY;
 
-        // Rotate around X
         const cosX = Math.cos(rotX);
         const sinX = Math.sin(rotX);
         const y2 = y * cosX - z1 * sinX;
@@ -161,7 +159,7 @@ export function Spending3DCanvas() {
         };
       });
 
-      // Render Cube Edges with Red / Cyberpunk Neon gradient
+      // Render Cube Edges with Red Neon gradient
       cubeEdges.forEach(([startIdx, endIdx]) => {
         const v1 = rotatedVertices[startIdx];
         const v2 = rotatedVertices[endIdx];
@@ -181,7 +179,7 @@ export function Spending3DCanvas() {
       rotatedVertices.forEach((v) => {
         ctx.beginPath();
         ctx.arc(v.px, v.py, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#2dd4bf'; // Emerald-teal accent node
+        ctx.fillStyle = '#2dd4bf';
         ctx.shadowBlur = 8;
         ctx.shadowColor = '#2dd4bf';
         ctx.fill();
