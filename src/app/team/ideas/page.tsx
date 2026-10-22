@@ -659,4 +659,4 @@ export default function IdeasEnclavePage() {
       </div>
     </div>
   );
-}page.tsx
+}
