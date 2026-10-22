@@ -2,14 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  ArrowLeft, Lock, Mail, ShieldAlert, CheckCircle2, 
-  Loader2, Terminal, ArrowRight, ShieldCheck 
+  ArrowLeft, Loader2, ShieldAlert, KeyRound, 
+  ArrowRight, CheckCircle2, RefreshCw, Mail, Terminal
 } from 'lucide-react';
 
-function Auth3DCanvas() {
+function TeamCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -40,12 +39,12 @@ function Auth3DCanvas() {
     const particles: { x: number; y: number; z: number; vx: number; vy: number; vz: number }[] = [];
     for (let i = 0; i < NUM_PARTICLES; i++) {
       particles.push({
-        x: (Math.random() - 0.5) * width * 1.4,
-        y: (Math.random() - 0.5) * height * 1.4,
-        z: Math.random() * 600 + 100,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        vz: (Math.random() - 0.5) * 0.4,
+        x: (Math.random() - 0.5) * width * 1.3,
+        y: (Math.random() - 0.5) * height * 1.3,
+        z: Math.random() * 650 + 80,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        vz: (Math.random() - 0.5) * 0.45,
       });
     }
 
@@ -73,14 +72,14 @@ function Auth3DCanvas() {
         const scale = focalLength / p.z;
         const px = width / 2 + (p.x + ox) * scale;
         const py = height / 2 + (p.y + oy) * scale;
-        const alpha = Math.min(Math.max((1 - p.z / 700) * 0.4, 0.04), 0.5);
+        const alpha = Math.min(Math.max((1 - p.z / 700) * 0.45, 0.05), 0.55);
 
         projected.push({ px, py, scale, alpha });
 
         ctx.beginPath();
-        ctx.arc(px, py, 1.8 * scale, 0, Math.PI * 2);
+        ctx.arc(px, py, 2.2 * scale, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(224, 35, 28, ${alpha})`;
-        ctx.shadowBlur = 6;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = '#e0231c';
         ctx.fill();
         ctx.shadowBlur = 0;
@@ -91,12 +90,12 @@ function Auth3DCanvas() {
           const dx = projected[i].px - projected[j].px;
           const dy = projected[i].py - projected[j].py;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 90) {
+          if (dist < 105) {
             ctx.beginPath();
             ctx.moveTo(projected[i].px, projected[i].py);
             ctx.lineTo(projected[j].px, projected[j].py);
-            ctx.strokeStyle = `rgba(224, 35, 28, ${(1 - dist / 90) * 0.08})`;
-            ctx.lineWidth = 0.6;
+            ctx.strokeStyle = `rgba(224, 35, 28, ${(1 - dist / 105) * 0.12})`;
+            ctx.lineWidth = 0.7;
             ctx.stroke();
           }
         }
@@ -117,16 +116,14 @@ function Auth3DCanvas() {
   return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-70" />;
 }
 
-export default function TeamLoginPage() {
+export default function TeamWorkbenchLoginPage() {
   const supabase = createClient();
-  const router = useRouter();
 
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingMagic, setLoadingMagic] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [authSuccess, setAuthSuccess] = useState(false);
-  const [assignedRole, setAssignedRole] = useState<string>('');
 
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [transform, setTransform] = useState<string>('');
@@ -141,11 +138,11 @@ export default function TeamLoginPage() {
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
 
-    const rotateX = -((y - centerY) / centerY) * 5;
-    const rotateY = ((x - centerX) / centerX) * 5;
+    const rotateX = -((y - centerY) / centerY) * 6;
+    const rotateY = ((x - centerX) / centerX) * 6;
 
     setTransform(`perspective(900px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.008, 1.008, 1.008)`);
-    setGlare({ x: (x / rect.width) * 100, y: (y / rect.height) * 100, opacity: 0.12 });
+    setGlare({ x: (x / rect.width) * 100, y: (y / rect.height) * 100, opacity: 0.14 });
   };
 
   const handleMouseLeave = () => {
@@ -153,53 +150,71 @@ export default function TeamLoginPage() {
     setGlare({ x: 50, y: 50, opacity: 0 });
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleGoogleTeamLogin = async () => {
+    setLoadingGoogle(true);
     setErrorMsg(null);
 
-    const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.codekootu.codes';
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${origin}/auth/callback?next=/team/workbench`,
+        skipBrowserRedirect: true,
+      },
     });
 
-    if (authErr) {
-      setErrorMsg(authErr.message);
-      setLoading(false);
+    if (error) {
+      setErrorMsg(error.message);
+      setLoadingGoogle(false);
       return;
     }
 
-    if (authData.user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name')
-        .eq('id', authData.user.id)
-        .maybeSingle();
+    if (data?.url) {
+      if (window.top) {
+        window.top.location.href = data.url;
+      } else {
+        window.location.href = data.url;
+      }
+    }
+  };
 
-      const userRole = profile?.role || 'authorized_member';
-      setAssignedRole(userRole.replace('_', ' ').toUpperCase());
-      setAuthSuccess(true);
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingMagic(true);
+    setErrorMsg(null);
 
-      setTimeout(() => {
-        router.push('/team/dashboard');
-      }, 1600);
+    const origin = window.location.origin;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback?next=/team/workbench`,
+      },
+    });
+
+    if (error) {
+      setErrorMsg(error.message);
+      setLoadingMagic(false);
+    } else {
+      setLoadingMagic(false);
+      setMagicSent(true);
     }
   };
 
   return (
     <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] font-sans flex flex-col justify-between p-6 sm:p-12 relative overflow-hidden selection:bg-[#e0231c]/30">
-      <Auth3DCanvas />
+      <TeamCanvas />
 
-      <header className="relative z-10 flex items-center justify-between max-w-5xl mx-auto w-full">
+      <header className="relative z-10 flex items-center justify-between max-w-md mx-auto w-full">
         <Link 
           href="/" 
-          className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-[#78837c] hover:text-white transition-colors"
+          className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-[#78837c] hover:text-white transition-colors font-mono"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Exit to Perimeter</span>
         </Link>
         <span className="text-[10px] uppercase font-mono tracking-[0.25em] text-[#e0231c] flex items-center gap-1.5">
-          <Terminal className="w-3.5 h-3.5" /> Sector 02 // Team Workbench
+          <Terminal className="w-3 h-3 text-[#e0231c] animate-pulse" /> Door 02 // Team Workbench
         </span>
       </header>
 
@@ -213,63 +228,84 @@ export default function TeamLoginPage() {
             transition: 'transform 0.15s ease-out',
             transformStyle: 'preserve-3d',
           }}
-          className="relative rounded-2xl bg-[#0a0e12]/90 backdrop-blur-2xl border border-[#dfe7e0]/10 p-8 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden"
+          className="relative rounded-3xl bg-[#0a0e12]/90 backdrop-blur-2xl border border-[#e0231c]/20 p-8 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden"
         >
           <div
             className="pointer-events-none absolute -inset-px transition-opacity duration-300"
             style={{
-              background: `radial-gradient(400px circle at ${glare.x}% ${glare.y}%, rgba(224, 35, 28, 0.25), transparent 70%)`,
+              background: `radial-gradient(400px circle at ${glare.x}% ${glare.y}%, rgba(224, 35, 28, 0.2), transparent 70%)`,
               opacity: glare.opacity,
             }}
           />
 
-          <div className="relative z-10">
-            {authSuccess ? (
-              <div className="py-8 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in zoom-in-95 duration-500">
-                <div className="relative flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl animate-pulse" />
-                  <div className="relative p-4 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.3)]">
-                    <CheckCircle2 className="w-12 h-12 stroke-[1.75]" />
-                  </div>
-                </div>
+          <div className="relative z-10 space-y-6">
+            <div className="text-center space-y-2">
+              <div className="inline-flex p-3 rounded-2xl bg-[#e0231c]/10 border border-[#e0231c]/20 text-[#e0231c] shadow-[0_0_25px_rgba(224,35,28,0.25)]">
+                <ShieldAlert className="w-6 h-6 animate-pulse" />
+              </div>
+              <h1 className="text-2xl font-light tracking-tight text-white">
+                Team Workbench
+              </h1>
+              <p className="text-xs text-[#78837c] leading-relaxed max-w-xs mx-auto">
+                Restricted to verified Code Kootu engineering collective members.
+              </p>
+            </div>
 
+            {errorMsg && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+                {errorMsg}
+              </div>
+            )}
+
+            {magicSent ? (
+              <div className="p-6 rounded-2xl bg-[#05070a]/90 border border-emerald-500/20 text-center space-y-4 animate-in fade-in duration-300">
+                <div className="inline-flex p-3 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  <CheckCircle2 className="w-8 h-8" />
+                </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] font-mono tracking-[0.25em] text-emerald-400 uppercase block">
-                    Access Granted // Role Verified
-                  </span>
-                  <h3 className="text-xl font-light text-white tracking-tight">
-                    {assignedRole}
-                  </h3>
-                  <p className="text-xs text-[#78837c] font-mono">
-                    Routing to internal collective workbench...
+                  <h3 className="text-base font-medium text-white">Internal Token Transmitted</h3>
+                  <p className="text-xs text-[#78837c] leading-relaxed">
+                    A secure authentication token has been beamed to <span className="text-[#dfe7e0] font-mono">{email}</span>. Click the link in your email to authenticate.
                   </p>
                 </div>
+                <button
+                  onClick={() => setMagicSent(false)}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#e0231c] hover:underline pt-2 cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3" /> Resend or change address
+                </button>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-[0.25em] text-[#e0231c] block mb-2">
-                    02 — Team Workbench
+              <div className="space-y-5">
+                <button
+                  onClick={handleGoogleTeamLogin}
+                  disabled={loadingGoogle}
+                  className="w-full py-3.5 px-4 bg-white hover:bg-neutral-200 text-black rounded-xl text-xs font-semibold flex items-center justify-center gap-3 transition-all cursor-pointer shadow-lg disabled:opacity-50"
+                >
+                  {loadingGoogle ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                  ) : (
+                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                  )}
+                  <span>Sign in with Team Account</span>
+                </button>
+
+                <div className="relative flex items-center justify-center">
+                  <div className="border-t border-[#dfe7e0]/10 w-full" />
+                  <span className="bg-[#0a0e12] px-3 text-[10px] uppercase font-mono text-[#78837c] tracking-widest absolute">
+                    or team email
                   </span>
-                  <h1 className="text-3xl font-light tracking-tight text-white">
-                    Verified Access.
-                  </h1>
-                  <p className="text-xs text-[#78837c] mt-1.5 leading-relaxed">
-                    Wing tools, sprints, triage console, admin decisions.
-                  </p>
                 </div>
 
-                {errorMsg && (
-                  <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2.5 font-mono">
-                    <ShieldAlert className="w-4 h-4 flex-shrink-0" />
-                    <span>{errorMsg}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-1.5">
+                <form onSubmit={handleMagicLink} className="space-y-3">
+                  <div className="space-y-1">
                     <label className="text-[10px] uppercase font-mono tracking-wider text-[#78837c] block">
-                      Team Email
+                      Team Member Email
                     </label>
                     <div className="relative">
                       <Mail className="w-4 h-4 text-[#78837c] absolute left-3.5 top-3 pointer-events-none" />
@@ -278,24 +314,7 @@ export default function TeamLoginPage() {
                         required
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="operator@codekootu.com"
-                        className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#78837c]/60 outline-none focus:border-[#e0231c] transition-colors font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] uppercase font-mono tracking-wider text-[#78837c] block">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-[#78837c] absolute left-3.5 top-3 pointer-events-none" />
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••••••"
+                        placeholder="member@codekootu.codes"
                         className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-[#78837c]/60 outline-none focus:border-[#e0231c] transition-colors font-mono"
                       />
                     </div>
@@ -303,14 +322,15 @@ export default function TeamLoginPage() {
 
                   <button
                     type="submit"
-                    disabled={loading}
-                    className="w-full py-3 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded-xl text-xs font-medium tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(224,35,28,0.25)] hover:shadow-[0_0_25px_rgba(224,35,28,0.4)] disabled:opacity-50 mt-2"
+                    disabled={loadingMagic}
+                    className="w-full py-3 bg-[#e0231c]/10 hover:bg-[#e0231c]/20 border border-[#e0231c]/30 text-[#e0231c] rounded-xl text-xs font-medium tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(224,35,28,0.15)] disabled:opacity-50"
                   >
-                    {loading ? (
+                    {loadingMagic ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <>
-                        <span>Sign In</span>
+                        <KeyRound className="w-3.5 h-3.5" />
+                        <span>Send Team Link</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </>
                     )}
@@ -318,15 +338,21 @@ export default function TeamLoginPage() {
                 </form>
               </div>
             )}
+
+            <div className="pt-2 border-t border-[#dfe7e0]/5 text-center">
+              <Link 
+                href="/login" 
+                className="text-[11px] font-mono text-[#78837c] hover:text-[#2dd4bf] transition-colors underline"
+              >
+                Not a core member? Switch to Door 01 (Public Portal) &rarr;
+              </Link>
+            </div>
           </div>
         </div>
       </main>
 
-      <footer className="relative z-10 max-w-5xl mx-auto w-full flex items-center justify-between text-[11px] text-[#78837c] font-mono border-t border-[#dfe7e0]/5 pt-4">
-        <span>Protected by Row Level Security</span>
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> End-to-End Cryptographic Session
-        </span>
+      <footer className="relative z-10 max-w-md mx-auto w-full text-center text-[10px] text-[#78837c] font-mono">
+        <span>Protected Core Infrastructure</span>
       </footer>
     </div>
   );
