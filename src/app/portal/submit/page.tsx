@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Send, Sparkles, CheckCircle2 } from 'lucide-react';
+import { submitIdeaAction } from '@/app/actions';
 
 export default function SubmitIdea() {
   const supabase = createClient();
