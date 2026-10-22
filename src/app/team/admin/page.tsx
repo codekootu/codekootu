@@ -1,17 +1,145 @@
-const handleDecision = async (ideaId: string, decision: 'Approved' | 'Rejected', wing: string = 'software') => {
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { 
+  ArrowLeft, ShieldAlert, CheckCircle, XCircle, Users, Check, X, 
+  Package, AlertCircle 
+} from 'lucide-react';
+
+interface IdeaVote {
+  user_id?: string;
+  user_name?: string;
+  vote?: string;
+  recommendation?: string;
+}
+
+interface IdeaItem {
+  id: string;
+  title: string;
+  description: string;
+  target_wing?: string;
+  status: string;
+  final_status?: string | null;
+  votes?: IdeaVote[];
+  created_at: string;
+}
+
+interface RestockItem {
+  id: string;
+  component: string;
+  quantity: number;
+  status: string;
+  profiles?: { full_name?: string } | null;
+}
+
+export default function AdminPanel() {
+  const supabase = createClient();
+  const router = useRouter();
+  
+  const [activeTab, setActiveTab] = useState<'ideas' | 'restock'>('ideas');
+  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
+  const [restockRequests, setRestockRequests] = useState<RestockItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
+  const [selectedWing, setSelectedWing] = useState<{ [key: string]: string }>({});
+
+  const fetchAdminData = useCallback(async () => {
+    setLoading(true);
+    setDbError(null);
+
+    // Fetch all ideas
+    const { data: ideaData, error: ideaErr } = await supabase
+      .from('ideas')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (ideaErr) {
+      console.error('Admin ideas fetch error:', ideaErr);
+      setDbError(ideaErr.message);
+    } else if (ideaData) {
+      // Keep only ideas that are pending determination
+      const pending = (ideaData as IdeaItem[]).filter((i) => {
+        const s = (i.status || '').toLowerCase();
+        const fs = (i.final_status || '').toLowerCase();
+        return (
+          s !== 'approved' && 
+          s !== 'allocated' && 
+          s !== 'rejected' &&
+          fs !== 'approved' &&
+          fs !== 'rejected'
+        );
+      });
+      setIdeas(pending);
+    }
+
+    // Fetch pending restock requests
+    const { data: restockData } = await supabase
+      .from('restock_requests')
+      .select('*, profiles(full_name)')
+      .eq('status', 'Pending');
+      
+    if (restockData) {
+      setRestockRequests(restockData as RestockItem[]);
+    }
+    
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    async function verifyAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { 
+        router.push('/team/login'); 
+        return; 
+      }
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (profile?.role !== 'super_admin') {
+        router.push('/team/dashboard');
+        return;
+      }
+
+      fetchAdminData();
+    }
+    verifyAuth();
+
+    const channel = supabase
+      .channel('admin_panel_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => {
+        fetchAdminData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restock_requests' }, () => {
+        fetchAdminData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, router, fetchAdminData]);
+
+  const handleDecision = async (ideaId: string, decision: 'Approved' | 'Rejected', wing: string = 'software') => {
     if (decision === 'Approved' && !wing) {
       alert('Please select a wing to allocate this to.');
       return;
     }
 
-    // Use canonical 'Approved' or 'Rejected' rather than 'allocated'
-    const statusValue = decision === 'Approved' ? 'Approved' : 'Rejected';
+    // Send canonical Title Case value to satisfy postgres enum if still attached
+    const statusVal = decision === 'Approved' ? 'Approved' : 'Rejected';
 
     const { error: ideaError } = await supabase
       .from('ideas')
       .update({
-        status: statusValue,
-        final_status: statusValue,
+        status: statusVal,
+        final_status: statusVal,
         allocated_wing: decision === 'Approved' ? wing : null,
       })
       .eq('id', ideaId);
@@ -39,3 +167,112 @@ const handleDecision = async (ideaId: string, decision: 'Approved' | 'Rejected',
     setIdeas((prev) => prev.filter((i) => i.id !== ideaId));
     alert(`Idea successfully ${decision}!`);
   };
+
+  const handleRestockDecision = async (requestId: string, itemName: string, quantity: number, status: 'Approved' | 'Rejected') => {
+    const { error } = await supabase.from('restock_requests').update({ status }).eq('id', requestId);
+    if (error) { 
+      alert('Error updating restock: ' + error.message); 
+      return; 
+    }
+    
+    if (status === 'Approved') {
+      const { data: invItem } = await supabase
+        .from('component_inventory')
+        .select('id, quantity_in_stock')
+        .eq('name', itemName)
+        .maybeSingle();
+
+      if (invItem) {
+        await supabase
+          .from('component_inventory')
+          .update({ quantity_in_stock: invItem.quantity_in_stock + quantity })
+          .eq('id', invItem.id);
+      }
+    }
+
+    setRestockRequests((prev) => prev.filter((r) => r.id !== requestId));
+    alert(`Restock request ${status}!`);
+  };
+
+  return (
+    <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] font-sans flex flex-col selection:bg-[#e0231c]/30">
+      <header className="h-20 border-b border-[#dfe7e0]/10 flex items-center px-8 flex-shrink-0 bg-[#0a0e12]">
+        <Link href="/team/dashboard" className="text-[#78837c] hover:text-white transition-colors mr-6">
+          <ArrowLeft className="w-5 h-5" />
+        </Link>
+        <div>
+          <h1 className="text-xl font-normal tracking-tight flex items-center gap-2 text-white">
+            <ShieldAlert className="w-5 h-5 text-[#e0231c]" /> Final Determination Panel
+          </h1>
+          <p className="text-xs text-[#78837c]">Review votes, allocate sprints, and approve inventory</p>
+        </div>
+      </header>
+
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-[#dfe7e0]/10 px-8 pt-4 bg-[#0a0e12]">
+        <button 
+          onClick={() => setActiveTab('ideas')} 
+          className={`pb-4 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === 'ideas' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'
+          }`}
+        >
+          Idea Approvals ({ideas.length})
+        </button>
+        <button 
+          onClick={() => setActiveTab('restock')} 
+          className={`pb-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === 'restock' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'
+          }`}
+        >
+          Restock Requests
+          {restockRequests.length > 0 && (
+            <span className="bg-[#e0231c] text-white text-[10px] px-2 py-0.5 rounded-full">
+              {restockRequests.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="p-8 max-w-5xl mx-auto w-full flex-1">
+        {dbError && (
+          <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>Database Notice: {dbError}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <p className="text-[#78837c] text-sm">Loading determinations...</p>
+        ) : activeTab === 'ideas' ? (
+          ideas.length === 0 ? (
+            <div className="text-center py-20 border border-dashed border-[#dfe7e0]/20 rounded-lg">
+              <CheckCircle className="w-12 h-12 mx-auto text-emerald-500 mb-4" />
+              <h2 className="text-2xl font-medium mb-2 text-white">All Caught Up</h2>
+              <p className="text-[#78837c] text-xs">No ideas are waiting for final determination.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-6">
+              {ideas.map((idea) => {
+                const votesList: IdeaVote[] = Array.isArray(idea.votes) ? idea.votes : [];
+                const currentWing = selectedWing[idea.id] || idea.target_wing || 'software';
+
+                return (
+                  <div key={idea.id} className="bg-[#0a0e12] border border-[#dfe7e0]/10 p-8 rounded-xl shadow-xl space-y-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] uppercase font-mono tracking-widest text-[#e0231c] mb-2 block">
+                          Pending Admin Action • Target: {idea.target_wing || 'Software'} Wing
+                        </span>
+                        <h3 className="text-2xl font-medium text-white mb-2">{idea.title}</h3>
+                        <p className="text-[#aab4ad] text-sm max-w-3xl leading-relaxed">{idea.description}</p>
+                      </div>
+                    </div>
+
+                    {/* Committee Votes Display with Member Names */}
+                    <div className="p-4 bg-[#05070a] border border-[#dfe7e0]/5 rounded-lg space-y-2">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#78837c]">
+                        <Users className="w-3.5 h-3.5" /> Committee Votes & Endorsements
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {
