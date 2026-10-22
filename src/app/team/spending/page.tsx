@@ -1,354 +1,544 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Check, X, Wallet, Receipt, ShieldCheck, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { 
+  Wallet, ArrowLeft, Plus, X, MessageSquare, AlertTriangle, 
+  CheckCircle2, Send, ShieldAlert, ChevronDown, ChevronUp 
+} from 'lucide-react';
 
-export default function SpendingLog() {
+interface ExpenseComment {
+  id: string;
+  user_name: string;
+  user_role: string;
+  text: string;
+  created_at: string;
+}
+
+interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  spent_where: string;
+  spent_by: string;
+  payment_method: string;
+  share_per_person?: number | null;
+  status: 'pending' | 'approved' | 'rejected' | 'disputed';
+  created_at: string;
+  dispute_note?: string | null;
+  comments?: ExpenseComment[];
+}
+
+export default function SpendingPage() {
   const supabase = createClient();
-  const [logs, setLogs] = useState<any[]>([]);
+  const router = useRouter();
+
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [showForm, setShowForm] = useState(false);
+
+  // Form states
+  const [title, setTitle] = useState('');
+  const [amount, setAmount] = useState('');
+  const [spentWhere, setSpentWhere] = useState('');
+  const [spentBy, setSpentBy] = useState('');
+  const [method, setMethod] = useState('UPI');
+  const [sharePerPerson, setSharePerPerson] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [isAdding, setIsAdding] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
-  // Form state
-  const [newLog, setNewLog] = useState({
-    event_name: '',
-    amount: '',
-    spent_where: '',
-    spent_by: '',
-    method: 'UPI',
-    share_per_person: ''
-  });
+  // Disputing / Commenting states
+  const [expandedExpenseId, setExpandedExpenseId] = useState<string | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [disputeInput, setDisputeInput] = useState<{ [key: string]: string }>({});
+  const [disputeMode, setDisputeMode] = useState<string | null>(null);
 
-  const [members, setMembers] = useState<any[]>([]);
-
+  // Auth & Profile Fetch
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        setProfile(prof);
-      }
-
-      // Fetch all member profiles for dropdown & mapping
-      const { data: mems } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .order('full_name');
-      
-      const memberList = mems || [];
-      setMembers(memberList);
-
-      // Create a quick lookup map { [id]: full_name }
-      const memberMap: Record<string, string> = {};
-      memberList.forEach(m => {
-        memberMap[m.id] = m.full_name;
-      });
-
-      // Fetch logs
-      const { data: logsData, error: logsError } = await supabase
-        .from('spending_logs')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (logsError) {
-        console.error('Error fetching spending_logs:', logsError);
-      } else if (logsData) {
-        // Hydrate spender and creator names reliably without fragile join queries
-        const enriched = logsData.map(log => ({
-          ...log,
-          spender: { full_name: memberMap[log.spent_by] || 'Unknown Member' },
-          creator: { full_name: memberMap[log.created_by] || 'System' }
-        }));
-        setLogs(enriched);
-      }
-    } catch (err) {
-      console.error('Unexpected error in fetchData:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-    setSubmitting(true);
-
-    try {
+    async function init() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        setFormError('Authentication session not found. Please log in again.');
-        setSubmitting(false);
+        router.push('/team/login');
         return;
       }
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
 
-      if (!newLog.spent_by) {
-        setFormError('Please select who made the payment.');
-        setSubmitting(false);
-        return;
-      }
-
-      const parsedAmount = parseFloat(newLog.amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        setFormError('Please enter a valid expense amount.');
-        setSubmitting(false);
-        return;
-      }
-
-      const insertPayload = {
-        event_name: newLog.event_name.trim(),
-        amount: parsedAmount,
-        spent_where: newLog.spent_where.trim(),
-        spent_by: newLog.spent_by,
-        method: newLog.method,
-        status: 'Pending',
-        share_per_person: newLog.share_per_person ? parseFloat(newLog.share_per_person) : null,
-        created_by: session.user.id
-      };
-
-      const { error: insertError } = await supabase
-        .from('spending_logs')
-        .insert(insertPayload);
-
-      if (insertError) {
-        console.error('Supabase Insert Error:', insertError);
-        setFormError(insertError.message || 'Failed to submit expense to database.');
-        setSubmitting(false);
-        return;
-      }
-
-      // Success: Reset and close
-      setNewLog({
-        event_name: '',
-        amount: '',
-        spent_where: '',
-        spent_by: '',
-        method: 'UPI',
-        share_per_person: ''
-      });
-      setIsAdding(false);
-      await fetchData();
-    } catch (err: any) {
-      console.error('Submission error:', err);
-      setFormError(err.message || 'An unexpected error occurred.');
-    } finally {
-      setSubmitting(false);
+      setProfile(data || { full_name: 'Member', role: 'contributor' });
+      setLoading(false);
     }
+    init();
+  }, [supabase, router]);
+
+  // Fetch Expenses
+  const fetchExpenses = useCallback(async () => {
+    const { data } = await supabase
+      .from('expenses')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setExpenses(data as Expense[]);
+    }
+  }, [supabase]);
+
+  useEffect(() => {
+    fetchExpenses();
+
+    const channel = supabase
+      .channel('realtime_expenses')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => {
+        fetchExpenses();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, fetchExpenses]);
+
+  // Role Permissions
+  const userRole = profile?.role || '';
+  const canAddExpense = [
+    'super_admin',
+    'software',
+    'hardware',
+    'operations',
+    'committee'
+  ].includes(userRole);
+
+  const totalApproved = expenses
+    .filter((e) => e.status === 'approved')
+    .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+
+  // Submit Expense (Leads & Super Admin only)
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canAddExpense) return;
+
+    setSubmitting(true);
+    const { error } = await supabase.from('expenses').insert({
+      title: title.trim(),
+      amount: parseFloat(amount),
+      spent_where: spentWhere.trim(),
+      spent_by: spentBy.trim() || profile?.full_name || 'Team Lead',
+      payment_method: method,
+      share_per_person: sharePerPerson ? parseFloat(sharePerPerson) : null,
+      status: userRole === 'super_admin' ? 'approved' : 'pending',
+      comments: [],
+    });
+
+    if (!error) {
+      setTitle('');
+      setAmount('');
+      setSpentWhere('');
+      setSpentBy('');
+      setSharePerPerson('');
+      setShowForm(false);
+      fetchExpenses();
+    } else {
+      alert(`Error logging expense: ${error.message}`);
+    }
+    setSubmitting(false);
   };
 
-  const handleApproval = async (id: string, status: 'Approved' | 'Rejected') => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+  // Add Comment (Available to all team members)
+  const handleAddComment = async (expense: Expense) => {
+    if (!newComment.trim()) return;
+
+    const commentPayload: ExpenseComment = {
+      id: crypto.randomUUID(),
+      user_name: profile?.full_name || 'Member',
+      user_role: userRole,
+      text: newComment.trim(),
+      created_at: new Date().toISOString(),
+    };
+
+    const updatedComments = [...(expense.comments || []), commentPayload];
 
     const { error } = await supabase
-      .from('spending_logs')
-      .update({ status, approved_by: session.user.id })
-      .eq('id', id);
+      .from('expenses')
+      .update({ comments: updatedComments })
+      .eq('id', expense.id);
 
-    if (error) {
-      console.error('Approval update failed:', error);
-      alert('Could not update status: ' + error.message);
-    } else {
-      fetchData();
+    if (!error) {
+      setNewComment('');
+      fetchExpenses();
     }
   };
 
-  if (loading) return <div className="p-12 text-[#78837c]">Loading expenses...</div>;
+  // Submit Review Request / Dispute (Available to all team members)
+  const handleRequestReview = async (expenseId: string) => {
+    const reason = disputeInput[expenseId]?.trim();
+    if (!reason) {
+      alert('Please enter a note describing the error or question regarding this expense.');
+      return;
+    }
 
-  const teamRoles = ['super_admin', 'committee', 'software', 'hardware', 'operations'];
-  const adminRoles = ['super_admin', 'committee'];
+    const { error } = await supabase
+      .from('expenses')
+      .update({
+        status: 'disputed',
+        dispute_note: reason,
+        disputed_by: profile?.id,
+      })
+      .eq('id', expenseId);
 
-  const canAdd = teamRoles.includes(profile?.role);
-  const canApprove = adminRoles.includes(profile?.role);
+    if (!error) {
+      setDisputeMode(null);
+      setDisputeInput((prev) => ({ ...prev, [expenseId]: '' }));
+      fetchExpenses();
+    }
+  };
 
-  const totalApproved = logs
-    .filter(l => l.status === 'Approved')
-    .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+  // Approve / Resolve (Super Admin or Wing Leads)
+  const handleStatusChange = async (expenseId: string, nextStatus: 'approved' | 'rejected') => {
+    if (!canAddExpense) return;
+    await supabase.from('expenses').update({ status: nextStatus }).eq('id', expenseId);
+    fetchExpenses();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#05070a] flex items-center justify-center text-[#dfe7e0]">
+        Loading Ledger...
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto p-8 md:p-12 animate-in fade-in duration-700">
-      
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-        <div>
-          <h1 className="text-4xl font-light mb-2 flex items-center gap-3">
-            <Wallet className="w-8 h-8 text-[#e0231c]" /> Spending Log
-          </h1>
-          <p className="text-[#78837c]">Track collective expenses, splits, and approvals.</p>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="text-right">
-            <div className="text-[10px] uppercase tracking-widest text-[#78837c] mb-1">Total Approved</div>
-            <div className="text-3xl font-medium text-white">₹{totalApproved.toFixed(2)}</div>
-          </div>
-          
-          {canAdd && (
-            <button 
-              onClick={() => {
-                setIsAdding(!isAdding);
-                setFormError(null);
-              }}
-              className="flex items-center gap-2 px-6 py-3 bg-[#e0231c] text-white rounded-full font-medium hover:bg-[#c01d17] transition-colors"
-            >
-              <Plus className="w-4 h-4" /> {isAdding ? 'Cancel' : 'Add Expense'}
-            </button>
-          )}
-        </div>
+    <div className="min-h-screen bg-[#05070a] text-[#dfe7e0] flex flex-col font-sans">
+      {/* Top Bar */}
+      <div className="border-b border-[#dfe7e0]/10 px-8 py-4 flex items-center justify-between">
+        <Link 
+          href="/team/dashboard" 
+          className="flex items-center gap-2 text-xs uppercase tracking-widest text-[#78837c] hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Workbench
+        </Link>
+        <span className="text-xs uppercase tracking-widest text-[#78837c]">
+          {profile?.full_name} ({userRole.replace('_', ' ')})
+        </span>
       </div>
 
-      {/* Add Expense Form */}
-      {isAdding && (
-        <form onSubmit={handleSubmit} className="mb-12 p-6 bg-[#0a0e12] border border-[#e0231c]/30 rounded-2xl animate-in slide-in-from-top-4">
-          <h3 className="text-lg font-medium mb-4 text-white">Suggest New Expense</h3>
-          
-          {formError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
-              {formError}
+      <div className="max-w-7xl w-full mx-auto p-6 md:p-10 space-y-8 flex-1">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="p-2 rounded bg-[#e0231c]/10 text-[#e0231c] border border-[#e0231c]/20">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <h1 className="text-2xl font-light text-white tracking-tight">Spending Log</h1>
             </div>
-          )}
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <input 
-              required 
-              placeholder="Event/Item Name" 
-              value={newLog.event_name} 
-              onChange={e => setNewLog({...newLog, event_name: e.target.value})} 
-              className="bg-[#05070a] border border-[#dfe7e0]/20 rounded-lg px-4 py-2 text-sm text-white focus:border-[#e0231c] outline-none" 
-            />
-            <input 
-              required 
-              type="number" 
-              step="0.01" 
-              placeholder="Amount (₹)" 
-              value={newLog.amount} 
-              onChange={e => setNewLog({...newLog, amount: e.target.value})} 
-              className="bg-[#05070a] border border-[#dfe7e0]/20 rounded-lg px-4 py-2 text-sm text-white focus:border-[#e0231c] outline-none" 
-            />
-            <input 
-              required 
-              placeholder="Spent Where (Store/Platform)" 
-              value={newLog.spent_where} 
-              onChange={e => setNewLog({...newLog, spent_where: e.target.value})} 
-              className="bg-[#05070a] border border-[#dfe7e0]/20 rounded-lg px-4 py-2 text-sm text-white focus:border-[#e0231c] outline-none" 
-            />
-            
-            <select 
-              required 
-              value={newLog.spent_by} 
-              onChange={e => setNewLog({...newLog, spent_by: e.target.value})} 
-              className="bg-[#05070a] border border-[#dfe7e0]/20 rounded-lg px-4 py-2 text-sm text-white focus:border-[#e0231c] outline-none"
-            >
-              <option value="">Who Spent?</option>
-              {members.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-            </select>
-            
-            <select 
-              required 
-              value={newLog.method} 
-              onChange={e => setNewLog({...newLog, method: e.target.value})} 
-              className="bg-[#05070a] border border-[#dfe7e0]/20 rounded-lg px-4 py-2 text-sm text-white focus:border-[#e0231c] outline-none"
-            >
-              <option value="UPI">UPI</option>
-              <option value="Cash">Cash</option>
-              <option value="Card">Card</option>
-              <option value="Bank Transfer">Bank Transfer</option>
-            </select>
-
-            <input 
-              type="number" 
-              step="0.01" 
-              placeholder="Share Per Person (₹) - Optional" 
-              value={newLog.share_per_person} 
-              onChange={e => setNewLog({...newLog, share_per_person: e.target.value})} 
-              className="bg-[#05070a] border border-[#dfe7e0]/20 rounded-lg px-4 py-2 text-sm text-white focus:border-[#e0231c] outline-none" 
-            />
+            <p className="text-xs text-[#78837c]">
+              Track collective expenses, verify invoices, and flag errors.
+            </p>
           </div>
-          <div className="mt-4 flex justify-end">
-            <button 
-              type="submit" 
-              disabled={submitting} 
-              className="px-6 py-2 bg-[#dfe7e0] text-black font-medium rounded-lg hover:bg-white transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {submitting ? 'Submitting...' : 'Submit for Approval'}
-            </button>
-          </div>
-        </form>
-      )}
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-[#dfe7e0]/10 bg-[#0a0e12]/50">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-[#dfe7e0]/10 text-xs uppercase tracking-widest text-[#78837c] bg-[#05070a]">
-              <th className="p-4 font-medium">Date</th>
-              <th className="p-4 font-medium">Event / Item</th>
-              <th className="p-4 font-medium">Amount</th>
-              <th className="p-4 font-medium">Spent By / Where</th>
-              <th className="p-4 font-medium">Method</th>
-              <th className="p-4 font-medium">Split</th>
-              <th className="p-4 font-medium">Status</th>
-              {canApprove && <th className="p-4 font-medium text-right">Actions</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.id} className="border-b border-[#dfe7e0]/5 hover:bg-[#0a0e12] transition-colors">
-                <td className="p-4 text-sm text-[#78837c]">{new Date(log.created_at).toLocaleDateString()}</td>
-                <td className="p-4">
-                  <div className="font-medium text-white">{log.event_name}</div>
-                  <div className="text-xs text-[#78837c] mt-1 flex items-center gap-1"><Receipt className="w-3 h-3"/> {log.spent_where}</div>
-                </td>
-                <td className="p-4 font-medium text-[#e0231c]">₹{Number(log.amount).toFixed(2)}</td>
-                <td className="p-4 text-sm text-white">
-                  {log.spender?.full_name}
-                  <div className="text-[10px] text-[#78837c] uppercase tracking-wider mt-1">Suggested by {log.creator?.full_name}</div>
-                </td>
-                <td className="p-4 text-sm text-[#78837c]">{log.method}</td>
-                <td className="p-4 text-sm text-[#78837c]">{log.share_per_person ? `₹${Number(log.share_per_person).toFixed(2)}` : '—'}</td>
-                <td className="p-4">
-                  <span className={`text-[10px] uppercase tracking-widest px-3 py-1 rounded-full border ${
-                    log.status === 'Approved' ? 'text-green-400 border-green-500/30 bg-green-500/10' :
-                    log.status === 'Rejected' ? 'text-red-400 border-red-500/30 bg-red-500/10' :
-                    'text-yellow-400 border-yellow-500/30 bg-yellow-500/10 animate-pulse'
-                  }`}>
-                    {log.status || 'Pending'}
-                  </span>
-                </td>
-                {canApprove && (
-                  <td className="p-4 text-right">
-                    {log.status === 'Pending' && (
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => handleApproval(log.id, 'Approved')} className="p-2 bg-green-500/10 text-green-400 hover:bg-green-500/20 rounded-lg transition-colors"><Check className="w-4 h-4"/></button>
-                        <button onClick={() => handleApproval(log.id, 'Rejected')} className="p-2 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"><X className="w-4 h-4"/></button>
+          <div className="flex items-center gap-6">
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-widest text-[#78837c] block">
+                Total Approved
+              </span>
+              <span className="text-2xl font-mono font-medium text-white">
+                ₹{totalApproved.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            {/* ONLY Team Leads and Super Admin get this button */}
+            {canAddExpense && (
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="px-4 py-2.5 bg-[#e0231c] hover:bg-[#c01d17] text-white rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+              >
+                {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                {showForm ? 'Cancel' : 'Suggest Expense'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Suggest Expense Form (Only for Leads & Super Admin) */}
+        {showForm && canAddExpense && (
+          <form 
+            onSubmit={handleAddExpense} 
+            className="p-6 bg-[#0a0e12] border border-[#dfe7e0]/15 rounded-xl space-y-4 animate-in fade-in"
+          >
+            <h3 className="text-xs uppercase tracking-widest text-[#dfe7e0] font-medium">
+              Suggest New Expense
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input
+                required
+                type="text"
+                placeholder="Event/Item Name"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="bg-[#05070a] border border-[#dfe7e0]/10 rounded px-3.5 py-2.5 text-xs text-white placeholder-[#78837c] outline-none focus:border-[#e0231c]"
+              />
+              <input
+                required
+                type="number"
+                step="0.01"
+                placeholder="Amount (₹)"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="bg-[#05070a] border border-[#dfe7e0]/10 rounded px-3.5 py-2.5 text-xs text-white placeholder-[#78837c] outline-none focus:border-[#e0231c]"
+              />
+              <input
+                required
+                type="text"
+                placeholder="Spent Where (Store/Platform)"
+                value={spentWhere}
+                onChange={(e) => setSpentWhere(e.target.value)}
+                className="bg-[#05070a] border border-[#dfe7e0]/10 rounded px-3.5 py-2.5 text-xs text-white placeholder-[#78837c] outline-none focus:border-[#e0231c]"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <input
+                type="text"
+                placeholder={`Who Spent? (Default: ${profile?.full_name})`}
+                value={spentBy}
+                onChange={(e) => setSpentBy(e.target.value)}
+                className="bg-[#05070a] border border-[#dfe7e0]/10 rounded px-3.5 py-2.5 text-xs text-white placeholder-[#78837c] outline-none focus:border-[#e0231c]"
+              />
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+                className="bg-[#05070a] border border-[#dfe7e0]/10 rounded px-3.5 py-2.5 text-xs text-[#dfe7e0] outline-none focus:border-[#e0231c]"
+              >
+                <option value="UPI">UPI</option>
+                <option value="Card">Card</option>
+                <option value="NetBanking">Net Banking</option>
+                <option value="Cash">Cash</option>
+              </select>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="Share Per Person (₹) - Optional"
+                value={sharePerPerson}
+                onChange={(e) => setSharePerPerson(e.target.value)}
+                className="bg-[#05070a] border border-[#dfe7e0]/10 rounded px-3.5 py-2.5 text-xs text-white placeholder-[#78837c] outline-none focus:border-[#e0231c]"
+              />
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-5 py-2.5 bg-white text-black font-medium rounded text-xs hover:bg-[#dfe7e0] transition-colors disabled:opacity-50"
+              >
+                {submitting ? 'Submitting...' : 'Submit for Approval'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Expenses Table */}
+        <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-12 gap-2 px-6 py-3.5 border-b border-[#dfe7e0]/10 text-[10px] uppercase tracking-wider text-[#78837c]">
+            <span className="col-span-2">Date</span>
+            <span className="col-span-3">Event / Item</span>
+            <span className="col-span-2">Amount</span>
+            <span className="col-span-2">Spent By / Where</span>
+            <span className="col-span-1">Method</span>
+            <span className="col-span-2 text-right">Status / Actions</span>
+          </div>
+
+          <div className="divide-y divide-[#dfe7e0]/5">
+            {expenses.length === 0 ? (
+              <div className="py-16 text-center text-xs text-[#78837c]">
+                No expenses logged yet.
+              </div>
+            ) : (
+              expenses.map((expense) => {
+                const isExpanded = expandedExpenseId === expense.id;
+                const isDisputing = disputeMode === expense.id;
+                const commentCount = expense.comments?.length || 0;
+
+                return (
+                  <div key={expense.id} className="hover:bg-[#111722]/30 transition-colors">
+                    {/* Main Row */}
+                    <div className="grid grid-cols-12 gap-2 px-6 py-4 items-center text-xs">
+                      <span className="col-span-2 text-[#78837c] font-mono">
+                        {new Date(expense.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      </span>
+                      <div className="col-span-3">
+                        <span className="font-medium text-white block truncate">{expense.title}</span>
+                        {expense.dispute_note && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-amber-400 font-mono mt-0.5">
+                            <AlertTriangle className="w-3 h-3" /> Under Review
+                          </span>
+                        )}
+                      </div>
+                      <span className="col-span-2 font-mono font-medium text-white">
+                        ₹{Number(expense.amount).toFixed(2)}
+                      </span>
+                      <div className="col-span-2 text-[#aab4ad] truncate">
+                        <span className="block text-white truncate">{expense.spent_by}</span>
+                        <span className="text-[10px] text-[#78837c] truncate block">{expense.spent_where}</span>
+                      </div>
+                      <span className="col-span-1 text-[#78837c] text-[11px] uppercase font-mono">
+                        {expense.payment_method}
+                      </span>
+
+                      {/* Status & Options */}
+                      <div className="col-span-2 flex items-center justify-end gap-2">
+                        {expense.status === 'approved' && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Approved
+                          </span>
+                        )}
+                        {expense.status === 'pending' && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            Pending
+                          </span>
+                        )}
+                        {expense.status === 'disputed' && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-red-500/10 text-red-400 border border-red-500/20">
+                            Review Flagged
+                          </span>
+                        )}
+
+                        {/* Leads / Admin quick actions for pending/disputed */}
+                        {canAddExpense && expense.status !== 'approved' && (
+                          <button
+                            onClick={() => handleStatusChange(expense.id, 'approved')}
+                            className="p-1 hover:text-emerald-400 text-[#78837c]"
+                            title="Approve Expense"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Accordion toggle for comments and dispute */}
+                        <button
+                          onClick={() => setExpandedExpenseId(isExpanded ? null : expense.id)}
+                          className="p-1 text-[#78837c] hover:text-white flex items-center gap-1"
+                          title="View Comments & Actions"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          {commentCount > 0 && (
+                            <span className="text-[10px] font-mono">{commentCount}</span>
+                          )}
+                          {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expanded Drawer for Comments & Dispute */}
+                    {isExpanded && (
+                      <div className="px-6 py-4 bg-[#05070a]/80 border-t border-[#dfe7e0]/5 space-y-4">
+                        {/* Dispute Warning Notice if active */}
+                        {expense.dispute_note && (
+                          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs space-y-1">
+                            <div className="flex items-center gap-1.5 text-amber-400 font-medium">
+                              <ShieldAlert className="w-4 h-4" />
+                              Review Request / Flagged Issue
+                            </div>
+                            <p className="text-[#dfe7e0] italic">"{expense.dispute_note}"</p>
+                          </div>
+                        )}
+
+                        {/* Member Actions: Request Review Button */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase tracking-widest text-[#78837c]">
+                            Discussion & Feedback
+                          </span>
+
+                          {!expense.dispute_note && (
+                            <button
+                              onClick={() => setDisputeMode(isDisputing ? null : expense.id)}
+                              className="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1.5 transition-colors"
+                            >
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              {isDisputing ? 'Cancel Review Request' : 'Review Again (Report Error)'}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Review Flag Form */}
+                        {isDisputing && (
+                          <div className="p-3 bg-[#0a0e12] border border-amber-500/30 rounded-lg space-y-2">
+                            <label className="text-[10px] text-[#78837c] uppercase tracking-wider block">
+                              Reason for Review / Discrepancy Note:
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={disputeInput[expense.id] || ''}
+                              onChange={(e) =>
+                                setDisputeInput({ ...disputeInput, [expense.id]: e.target.value })
+                              }
+                              placeholder="Describe the issue (e.g., incorrect split, duplicate transaction, wrong amount)..."
+                              className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded p-2 text-xs text-white outline-none focus:border-amber-400 resize-none"
+                            />
+                            <div className="flex justify-end">
+                              <button
+                                onClick={() => handleRequestReview(expense.id)}
+                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-black font-medium text-xs rounded transition-colors"
+                              >
+                                Submit Review Request
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Comments List */}
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {commentCount === 0 ? (
+                            <div className="text-[11px] text-[#78837c] italic">No comments yet.</div>
+                          ) : (
+                            expense.comments?.map((c) => (
+                              <div key={c.id} className="p-2.5 rounded bg-[#0a0e12] border border-[#dfe7e0]/5 text-xs">
+                                <div className="flex justify-between items-center text-[10px] text-[#78837c] mb-1">
+                                  <span className="text-[#dfe7e0] font-medium">
+                                    {c.user_name}{' '}
+                                    <span className="text-[#78837c] uppercase">({c.user_role})</span>
+                                  </span>
+                                  <span>{new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                                <p className="text-[#aab4ad]">{c.text}</p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Add Comment Input */}
+                        <div className="flex gap-2 pt-1">
+                          <input
+                            type="text"
+                            placeholder="Add a comment or question about this expense..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddComment(expense)}
+                            className="flex-1 bg-[#0a0e12] border border-[#dfe7e0]/15 rounded px-3 py-2 text-xs text-white placeholder-[#78837c] outline-none focus:border-[#e0231c]"
+                          />
+                          <button
+                            onClick={() => handleAddComment(expense)}
+                            className="px-3 py-2 bg-[#dfe7e0]/10 hover:bg-[#dfe7e0]/20 text-white rounded text-xs transition-colors flex items-center gap-1"
+                          >
+                            <Send className="w-3 h-3" />
+                            Comment
+                          </button>
+                        </div>
                       </div>
                     )}
-                    {log.status === 'Approved' && <ShieldCheck className="w-5 h-5 text-green-500/50 ml-auto" />}
-                  </td>
-                )}
-              </tr>
-            ))}
-            {logs.length === 0 && (
-              <tr>
-                <td colSpan={canApprove ? 8 : 7} className="p-12 text-center text-[#78837c]">No expenses logged yet.</td>
-              </tr>
+                  </div>
+                );
+              })
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
-
     </div>
   );
 }
