@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   LayoutDashboard, Cpu, HardDrive, Megaphone, ShieldAlert, 
-  LogOut, MessageSquare, Menu, X, Wallet, Code2, Users, Lightbulb 
+  LogOut, MessageSquare, Menu, X, Wallet, Code2, Users, Lightbulb,
+  ShieldCheck 
 } from 'lucide-react';
 import { ActivePresenceWidget } from '@/components/team/ActivePresenceWidget';
 import { CurrentProjectWidget } from '@/components/team/CurrentProjectWidget';
