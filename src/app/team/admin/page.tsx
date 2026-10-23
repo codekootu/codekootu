@@ -1,370 +1,298 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, ShieldAlert, CheckCircle, XCircle, Users, Check, X, 
-  Package, AlertCircle 
+  ShieldAlert, CheckCircle2, XCircle, FileText, Package, 
+  Users, ArrowLeft, Check, User, Trophy
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-interface IdeaVote {
-  user_id?: string;
-  user_name?: string;
-  vote?: string;
-  recommendation?: string;
-}
-
-interface IdeaItem {
-  id: string;
-  title: string;
-  description: string;
-  target_wing?: string;
-  status: string;
-  final_status?: string | null;
-  votes?: IdeaVote[];
-  created_at: string;
-}
-
-interface RestockItem {
-  id: string;
-  component: string;
-  quantity: number;
-  status: string;
-  profiles?: { full_name?: string } | null;
-}
-
-export default function AdminPanel() {
+export default function FinalDeterminationPanel() {
   const supabase = createClient();
-  const router = useRouter();
+  // 1. NOTICE 'members' IS ADDED HERE
+  const [activeTab, setActiveTab] = useState<'ideas' | 'restock' | 'members'>('ideas');
   
-  const [activeTab, setActiveTab] = useState<'ideas' | 'restock'>('ideas');
-  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
-  const [restockRequests, setRestockRequests] = useState<RestockItem[]>([]);
+  // Data States
+  const [ideas, setIdeas] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  
+  // Loading & Action States
   const [loading, setLoading] = useState(true);
-  const [dbError, setDbError] = useState<string | null>(null);
-  const [selectedWing, setSelectedWing] = useState<{ [key: string]: string }>({});
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const fetchAdminData = useCallback(async () => {
-    setLoading(true);
-    setDbError(null);
-
-    const { data: ideaData, error: ideaErr } = await supabase
-      .from('ideas')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (ideaErr) {
-      console.error('Admin ideas fetch error:', ideaErr);
-      setDbError(ideaErr.message);
-    } else if (ideaData) {
-      const pending = (ideaData as IdeaItem[]).filter((i) => {
-        const s = (i.status || '').toLowerCase();
-        const fs = (i.final_status || '').toLowerCase();
-        return (
-          s !== 'approved' && 
-          s !== 'allocated' && 
-          s !== 'rejected' &&
-          fs !== 'approved' &&
-          fs !== 'rejected'
-        );
-      });
-      setIdeas(pending);
-    }
-
-    const { data: restockData } = await supabase
-      .from('restock_requests')
-      .select('*, profiles(full_name)')
-      .eq('status', 'Pending');
-      
-    if (restockData) {
-      setRestockRequests(restockData as RestockItem[]);
-    }
-    
-    setLoading(false);
-  }, [supabase]);
+  // Wing options for the dropdown
+  const wings = ['Software Wing', 'Hardware Wing', 'Operations Wing'];
 
   useEffect(() => {
-    async function verifyAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { 
-        router.push('/team/login'); 
-        return; 
-      }
+    fetchData();
+  }, [activeTab]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    if (activeTab === 'ideas') {
+      const { data } = await supabase
+        .from('ideas')
+        .select('*')
+        .eq('status', 'Received') 
+        .order('created_at', { ascending: false });
       
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (profile?.role !== 'super_admin') {
-        router.push('/team/dashboard');
-        return;
-      }
-
-      fetchAdminData();
+      if (data) setIdeas(data);
+      setLoading(false);
+    } 
+    else if (activeTab === 'members') {
+      const { data } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          application_reviews (*)
+        `)
+        .eq('is_published', false) // Only fetch those not yet published
+        .order('created_at', { ascending: false });
+        
+      if (data) setApplications(data);
+      setLoading(false);
+    } 
+    else {
+      setLoading(false);
     }
-    verifyAuth();
+  };
 
-    const channel = supabase
-      .channel('admin_panel_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ideas' }, () => {
-        fetchAdminData();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'restock_requests' }, () => {
-        fetchAdminData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [supabase, router, fetchAdminData]);
-
-  const handleDecision = async (ideaId: string, decision: 'Approved' | 'Rejected', wing: string = 'software') => {
-    if (decision === 'Approved' && !wing) {
-      alert('Please select a wing to allocate this to.');
-      return;
-    }
-
-    const statusVal = decision === 'Approved' ? 'Approved' : 'Rejected';
-
-    const { error: ideaError } = await supabase
+  // --- IDEA APPROVAL ACTIONS ---
+  const handleIdeaAction = async (ideaId: string, action: 'Approved' | 'Rejected', assignedWing: string) => {
+    setActionLoading(ideaId);
+    
+    const { error } = await supabase
       .from('ideas')
       .update({
-        status: statusVal,
-        final_status: statusVal,
-        allocated_wing: decision === 'Approved' ? wing : null,
+        status: action,
+        assigned_wing: action === 'Approved' ? assignedWing : null
       })
       .eq('id', ideaId);
 
-    if (ideaError) { 
-      alert('Error updating idea: ' + ideaError.message); 
-      return; 
+    if (error) {
+      alert(error.message);
+    } else {
+      fetchData(); 
     }
-
-    if (decision === 'Approved') {
-      const idea = ideas.find((i) => i.id === ideaId);
-      const { error: projError } = await supabase.from('projects').insert({
-        idea_id: ideaId,
-        name: idea?.title || 'New Collective Project',
-        assigned_wing: wing,
-        status: 'Building',
-        sprint_directive: 'Initial sprint allocation authorized by Super Admin.',
-      });
-
-      if (projError) { 
-        console.warn('Projects insert note:', projError.message);
-      }
-    }
-
-    setIdeas((prev) => prev.filter((i) => i.id !== ideaId));
-    alert(`Idea successfully ${decision}!`);
+    setActionLoading(null);
   };
 
-  const handleRestockDecision = async (requestId: string, itemName: string, quantity: number, status: 'Approved' | 'Rejected') => {
-    const { error } = await supabase.from('restock_requests').update({ status }).eq('id', requestId);
-    if (error) { 
-      alert('Error updating restock: ' + error.message); 
-      return; 
-    }
+  // --- FINAL MEMBER VERDICT ACTIONS ---
+  const handleFinalVerdict = async (app: any, decision: 'Accepted' | 'Rejected', stats: any) => {
+    setActionLoading(app.id);
     
-    if (status === 'Approved') {
-      const { data: invItem } = await supabase
-        .from('component_inventory')
-        .select('id, quantity_in_stock')
-        .eq('name', itemName)
-        .maybeSingle();
+    const { error } = await supabase
+      .from('applications')
+      .update({
+        is_published: true,
+        final_decision: decision,
+        avg_rating: stats.avgRating,
+        endorse_percent: stats.endorsePercent,
+        status: decision // Instantly updates user portal
+      })
+      .eq('id', app.id);
 
-      if (invItem) {
-        await supabase
-          .from('component_inventory')
-          .update({ quantity_in_stock: invItem.quantity_in_stock + quantity })
-          .eq('id', invItem.id);
-      }
+    if (error) {
+      alert(error.message);
+    } else {
+      fetchData(); // Refresh list
     }
-
-    setRestockRequests((prev) => prev.filter((r) => r.id !== requestId));
-    alert(`Restock request ${status}!`);
+    setActionLoading(null);
   };
+
 
   return (
-    <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] font-sans flex flex-col selection:bg-[#e0231c]/30">
-      <header className="h-20 border-b border-[#dfe7e0]/10 flex items-center px-8 flex-shrink-0 bg-[#0a0e12]">
-        <Link href="/team/dashboard" className="text-[#78837c] hover:text-white transition-colors mr-6">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-xl font-normal tracking-tight flex items-center gap-2 text-white">
-            <ShieldAlert className="w-5 h-5 text-[#e0231c]" /> Final Determination Panel
+    <div className="min-h-screen bg-[#05070a] text-[#dfe7e0] flex flex-col font-sans">
+      
+      {/* Header */}
+      <div className="border-b border-[#dfe7e0]/10 p-6 bg-[#0a0e12]">
+        <div className="flex items-center gap-4 mb-2">
+          <Link href="/team/admin" className="text-[#78837c] hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="text-2xl font-light flex items-center gap-3">
+            <ShieldAlert className="text-[#e0231c] w-6 h-6" /> Final Determination Panel
           </h1>
-          <p className="text-xs text-[#78837c]">Review votes, allocate sprints, and approve inventory</p>
         </div>
-      </header>
+        <p className="text-[#78837c] text-xs font-mono ml-9">Review votes, allocate sprints, and approve inventory</p>
+      </div>
 
       {/* Tabs */}
-      <div className="flex gap-4 border-b border-[#dfe7e0]/10 px-8 pt-4 bg-[#0a0e12]">
+      <div className="flex border-b border-[#dfe7e0]/10 px-6 bg-[#0a0e12] overflow-x-auto">
         <button 
-          onClick={() => setActiveTab('ideas')} 
-          className={`pb-4 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === 'ideas' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'
-          }`}
+          onClick={() => setActiveTab('ideas')}
+          className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'ideas' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'}`}
         >
-          Idea Approvals ({ideas.length})
+          <FileText className="w-4 h-4" /> Idea Approvals ({ideas.length})
         </button>
+        
+        {/* 🔥 2. THE NEW TAB IS RIGHT HERE 🔥 */}
         <button 
-          onClick={() => setActiveTab('restock')} 
-          className={`pb-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
-            activeTab === 'restock' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'
-          }`}
+          onClick={() => setActiveTab('members')}
+          className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'members' ? 'border-[#2dd4bf] text-[#2dd4bf]' : 'border-transparent text-[#78837c] hover:text-white'}`}
         >
-          Restock Requests
-          {restockRequests.length > 0 && (
-            <span className="bg-[#e0231c] text-white text-[10px] px-2 py-0.5 rounded-full">
-              {restockRequests.length}
-            </span>
-          )}
+          <Trophy className="w-4 h-4" /> Final Member Verdicts
+        </button>
+
+        <button 
+          onClick={() => setActiveTab('restock')}
+          className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'restock' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'}`}
+        >
+          <Package className="w-4 h-4" /> Restock Requests
         </button>
       </div>
 
-      <div className="p-8 max-w-5xl mx-auto w-full flex-1">
-        {dbError && (
-          <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
-            <span>Database Notice: {dbError}</span>
-          </div>
-        )}
+      {/* Content Area */}
+      <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-[#05070a]">
+        <AnimatePresence mode="wait">
+          
+          {/* ================= IDEA APPROVALS TAB ================= */}
+          {activeTab === 'ideas' && (
+            <motion.div key="ideas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto space-y-6">
+              {loading ? (
+                <div className="text-center py-20 text-[#2dd4bf] font-mono animate-pulse">Loading Ideas...</div>
+              ) : ideas.length === 0 ? (
+                <div className="text-center py-20 border border-dashed border-[#dfe7e0]/10 rounded-2xl text-[#78837c]">No pending ideas to review.</div>
+              ) : (
+                ideas.map(idea => (
+                  <div key={idea.id} className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-6">
+                    <div className="mb-4">
+                      <p className="text-[10px] text-[#e0231c] font-mono uppercase tracking-widest mb-2">Pending Admin Action • Target: {idea.target_wing || 'Unassigned'}</p>
+                      <h2 className="text-2xl font-medium text-white mb-2">{idea.title}</h2>
+                      <p className="text-sm text-[#78837c] leading-relaxed">{idea.description}</p>
+                    </div>
 
-        {loading ? (
-          <p className="text-[#78837c] text-sm">Loading determinations...</p>
-        ) : activeTab === 'ideas' ? (
-          ideas.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-[#dfe7e0]/20 rounded-lg">
-              <CheckCircle className="w-12 h-12 mx-auto text-emerald-500 mb-4" />
-              <h2 className="text-2xl font-medium mb-2 text-white">All Caught Up</h2>
-              <p className="text-[#78837c] text-xs">No ideas are waiting for final determination.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              {ideas.map((idea) => {
-                const votesList: IdeaVote[] = Array.isArray(idea.votes) ? idea.votes : [];
-                const currentWing = selectedWing[idea.id] || idea.target_wing || 'software';
-
-                return (
-                  <div key={idea.id} className="bg-[#0a0e12] border border-[#dfe7e0]/10 p-8 rounded-xl shadow-xl space-y-6">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] uppercase font-mono tracking-widest text-[#e0231c] mb-2 block">
-                          Pending Admin Action • Target: {idea.target_wing || 'Software'} Wing
-                        </span>
-                        <h3 className="text-2xl font-medium text-white mb-2">{idea.title}</h3>
-                        <p className="text-[#aab4ad] text-sm max-w-3xl leading-relaxed">{idea.description}</p>
+                    <div className="bg-[#05070a] border border-[#dfe7e0]/5 rounded-xl p-4 mb-6">
+                      <h3 className="text-[10px] text-[#78837c] uppercase font-mono tracking-widest mb-3 flex items-center gap-2">
+                        <Users className="w-3 h-3" /> Committee Votes & Endorsements
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-[#2dd4bf] bg-[#2dd4bf]/10 px-3 py-2 rounded-lg w-fit border border-[#2dd4bf]/20">
+                          <CheckCircle2 className="w-3 h-3" /> Accepted by Austin M J
+                        </div>
                       </div>
                     </div>
 
-                    {/* Committee Votes Display with Member Names */}
-                    <div className="p-4 bg-[#05070a] border border-[#dfe7e0]/5 rounded-lg space-y-2">
-                      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-[#78837c]">
-                        <Users className="w-3.5 h-3.5" /> Committee Votes & Endorsements
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {votesList.length > 0 ? (
-                          votesList.map((v: IdeaVote, idx: number) => {
-                            const isAccepted = v.vote === 'accept' || v.recommendation === 'Approve' || v.vote === 'Approved';
-                            const voterName = v.user_name || 'Committee Member';
-
-                            return (
-                              <div
-                                key={idx}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono border ${
-                                  isAccepted
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                }`}
-                              >
-                                {isAccepted ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
-                                <span>{isAccepted ? 'Accepted by' : 'Rejected by'} {voterName}</span>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <span className="text-xs text-[#78837c] italic">No committee votes cast yet.</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Final Action Controls */}
-                    <div className="flex flex-col md:flex-row gap-4 border-t border-[#dfe7e0]/10 pt-6">
-                      <div className="flex-1 flex gap-2">
-                        <select 
-                          value={currentWing}
-                          onChange={(e) => setSelectedWing({ ...selectedWing, [idea.id]: e.target.value })}
-                          className="bg-[#05070a] border border-[#dfe7e0]/15 rounded px-4 py-3 text-xs text-white outline-none focus:border-[#e0231c]"
-                        >
-                          <option value="software">Software Wing</option>
-                          <option value="hardware">Hardware Wing</option>
-                          <option value="operations">Operations Wing</option>
-                        </select>
-
-                        <button 
-                          onClick={() => handleDecision(idea.id, 'Approved', currentWing)}
-                          className="flex-1 py-3 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded font-medium hover:bg-emerald-500/20 transition-colors flex items-center justify-center gap-2 text-xs"
-                        >
-                          <CheckCircle className="w-4 h-4" /> Approve & Allocate
-                        </button>
-                      </div>
-
+                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                      <select 
+                        id={`wing-${idea.id}`}
+                        defaultValue={idea.target_wing || 'Software Wing'}
+                        className="w-full md:w-48 bg-[#05070a] border border-[#dfe7e0]/15 text-sm rounded-xl px-4 py-3 text-white outline-none focus:border-[#2dd4bf] appearance-none"
+                      >
+                        {wings.map(w => <option key={w} value={w}>{w}</option>)}
+                      </select>
+                      
                       <button 
-                        onClick={() => handleDecision(idea.id, 'Rejected')} 
-                        className="px-8 py-3 bg-red-500/10 text-red-400 border border-red-500/30 rounded font-medium hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2 text-xs"
+                        onClick={() => {
+                          const select = document.getElementById(`wing-${idea.id}`) as HTMLSelectElement;
+                          handleIdeaAction(idea.id, 'Approved', select.value);
+                        }}
+                        disabled={actionLoading === idea.id}
+                        className="flex-1 w-full py-3 bg-[#2dd4bf]/10 border border-[#2dd4bf]/30 text-[#2dd4bf] font-bold uppercase tracking-wider text-xs rounded-xl hover:bg-[#2dd4bf]/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Approve & Allocate
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleIdeaAction(idea.id, 'Rejected', '')}
+                        disabled={actionLoading === idea.id}
+                        className="w-full md:w-32 py-3 bg-red-500/10 border border-red-500/30 text-red-400 font-bold uppercase tracking-wider text-xs rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         <XCircle className="w-4 h-4" /> Reject
                       </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )
-        ) : (
-          restockRequests.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-[#dfe7e0]/20 rounded-lg">
-              <Package className="w-12 h-12 mx-auto text-emerald-500 mb-4" />
-              <h2 className="text-2xl font-medium mb-2 text-white">Inventory Optimal</h2>
-              <p className="text-[#78837c] text-xs">No pending restock requests from the Hardware wing.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              {restockRequests.map((req) => (
-                <div key={req.id} className="bg-[#0a0e12] border border-[#dfe7e0]/10 p-6 rounded-lg flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-white mb-1">{req.component}</h3>
-                    <div className="text-sm text-[#aab4ad]">
-                      Requested {req.quantity} units • By {req.profiles?.full_name || 'Hardware Lead'}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => handleRestockDecision(req.id, req.component, req.quantity, 'Approved')} 
-                      className="px-6 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded hover:bg-emerald-500/20 flex items-center gap-2 text-xs transition-colors"
-                    >
-                      <Check className="w-4 h-4" /> Approve
-                    </button>
-                    <button 
-                      onClick={() => handleRestockDecision(req.id, req.component, req.quantity, 'Rejected')} 
-                      className="px-6 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded hover:bg-red-500/20 flex items-center gap-2 text-xs transition-colors"
-                    >
-                      <X className="w-4 h-4" /> Reject
-                    </button>
-                  </div>
+                ))
+              )}
+            </motion.div>
+          )}
+
+          {/* ================= FINAL MEMBER VERDICTS TAB ================= */}
+          {activeTab === 'members' && (
+            <motion.div key="members" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto space-y-6">
+              {loading ? (
+                <div className="text-center py-20 text-[#2dd4bf] font-mono animate-pulse">Loading Applications...</div>
+              ) : applications.filter(app => (app.application_reviews?.length || 0) >= 14).length === 0 ? (
+                <div className="text-center py-20 border border-dashed border-[#dfe7e0]/10 rounded-2xl text-[#78837c] flex flex-col items-center">
+                  <Users className="w-12 h-12 mb-4 opacity-20" />
+                  <p className="text-lg">No candidates are ready for final review.</p>
+                  <p className="text-sm mt-2">Waiting for all 14 team members to cast their votes.</p>
                 </div>
-              ))}
-            </div>
-          )
-        )}
+              ) : (
+                applications
+                  .filter(app => (app.application_reviews?.length || 0) >= 14) // ONLY SHOW IF 14+ VOTES
+                  .map(app => {
+                    const reviews = app.application_reviews || [];
+                    const totalReviews = reviews.length;
+                    
+                    const endorsements = reviews.filter((r: any) => r.vote === 'Endorse').length;
+                    const endorsePercent = totalReviews > 0 ? Math.round((endorsements / totalReviews) * 100) : 0;
+                    const totalRating = reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0);
+                    const avgRating = totalReviews > 0 ? (totalRating / totalReviews).toFixed(1) : 0;
+
+                    const stats = { endorsePercent, avgRating };
+
+                    return (
+                      <div key={app.id} className="bg-[#0a0e12] border border-[#2dd4bf]/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(45,212,191,0.05)]">
+                        
+                        <div className="flex justify-between items-start mb-6 border-b border-[#dfe7e0]/10 pb-4">
+                          <div>
+                            <h2 className="text-2xl font-medium text-white">{app.full_name || 'Unnamed Candidate'}</h2>
+                            <p className="text-sm text-[#78837c] font-mono mt-1">{app.desired_wing} • {app.branch} ({app.year_of_study})</p>
+                          </div>
+                          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#2dd4bf]/20 text-[#2dd4bf] animate-pulse">
+                            14+ Votes Reached
+                          </span>
+                        </div>
+
+                        {/* Final Stats Grid */}
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                          <div className="bg-[#05070a] p-5 rounded-xl border border-[#dfe7e0]/5 text-center">
+                            <p className="text-[10px] text-[#78837c] uppercase font-mono mb-2">Average Rating</p>
+                            <p className="text-4xl font-black text-[#e0231c]">{avgRating}<span className="text-lg text-[#78837c]">/100</span></p>
+                          </div>
+                          <div className="bg-[#05070a] p-5 rounded-xl border border-[#dfe7e0]/5 text-center">
+                            <p className="text-[10px] text-[#78837c] uppercase font-mono mb-2">Endorsement Rate</p>
+                            <p className="text-4xl font-black text-[#2dd4bf]">{endorsePercent}%</p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-4">
+                          <button 
+                            onClick={() => handleFinalVerdict(app, 'Accepted', stats)}
+                            disabled={actionLoading === app.id}
+                            className="flex-1 py-4 bg-[#2dd4bf] text-black border border-[#2dd4bf] font-bold uppercase tracking-wider text-sm rounded-xl hover:bg-[#20b8a6] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(45,212,191,0.3)]"
+                          >
+                            {actionLoading === app.id ? 'Publishing...' : <><CheckCircle2 className="w-5 h-5"/> Accept & Publish</>}
+                          </button>
+                          <button 
+                            onClick={() => handleFinalVerdict(app, 'Rejected', stats)}
+                            disabled={actionLoading === app.id}
+                            className="flex-1 py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold uppercase tracking-wider text-sm rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {actionLoading === app.id ? 'Publishing...' : <><XCircle className="w-5 h-5"/> Reject & Publish</>}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </motion.div>
+          )}
+
+          {/* ================= RESTOCK REQUESTS TAB ================= */}
+          {activeTab === 'restock' && (
+            <motion.div key="restock" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto">
+               <div className="text-center py-20 border border-dashed border-[#dfe7e0]/10 rounded-2xl text-[#78837c]">
+                 Restock Requests module is under construction.
+               </div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
       </div>
     </div>
   );
