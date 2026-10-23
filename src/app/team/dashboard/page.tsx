@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { 
   LayoutDashboard, Cpu, HardDrive, Megaphone, ShieldAlert, 
   LogOut, MessageSquare, Menu, X, Wallet, Code2, Users, Lightbulb,
-  ShieldCheck 
+  ShieldCheck, UserPlus // Added UserPlus icon
 } from 'lucide-react';
 import { ActivePresenceWidget } from '@/components/team/ActivePresenceWidget';
 import { CurrentProjectWidget } from '@/components/team/CurrentProjectWidget';
@@ -51,6 +51,7 @@ export default function TeamDashboard() {
     { name: 'Spending Log', href: '/team/spending', icon: Wallet, show: true },
     { name: 'Admin Panel', href: '/team/admin', icon: ShieldAlert, show: isAdmin },
     { name: 'Submissions Intel', href: '/team/admin/submissions', icon: ShieldCheck, show: isAdmin }, 
+    { name: 'Applicant Pipeline', href: '/team/applications', icon: UserPlus, show: isAdmin }, // 👈 NEW LINK
   ].filter(i => i.show);
 
   const wingItems = [
