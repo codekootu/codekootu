@@ -225,7 +225,7 @@ export default function TeamReviewPage() {
                 {reviews.length === 0 ? (
                   <p className="text-sm text-[#78837c] italic py-4 text-center border border-dashed border-[#dfe7e0]/10 rounded-xl">No votes cast yet. Be the first.</p>
                 ) : (
-                  reviews.map(rev => {
+                  reviews.map((rev: any) => {
                     const isExpanded = expandedReviewId === rev.id;
                     const isMe = rev.reviewer_id === profile?.id;
 
