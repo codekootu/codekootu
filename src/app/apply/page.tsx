@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { 
-  ArrowLeft, ArrowRight, CheckCircle2, User, Clock, Zap, ShieldAlert, LogIn, Sparkles, AlertTriangle
+  ArrowLeft, ArrowRight, CheckCircle2, User, Clock, Zap, ShieldAlert, LogIn, Sparkles, AlertTriangle, Lock
 } from 'lucide-react';
 import AnimatedBackground from '@/components/AnimatedBackground';
 
@@ -125,7 +125,6 @@ export default function ApplyPage() {
     })
   };
 
-  // 1. LOADING STATE
   if (checkingAuth) {
     return (
       <div className="min-h-[100dvh] bg-[#05070a] flex flex-col items-center justify-center text-[#dfe7e0] relative overflow-hidden">
@@ -138,7 +137,6 @@ export default function ApplyPage() {
     );
   }
 
-  // 2. UNAUTHENTICATED STATE
   if (!user) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center p-4 relative overflow-hidden perspective-[1500px]">
@@ -170,7 +168,6 @@ export default function ApplyPage() {
     );
   }
 
-  // 3. AUTHENTICATED FORM
   return (
     <div 
       onMouseMove={handleMouseMove}
@@ -179,7 +176,6 @@ export default function ApplyPage() {
     >
       <AnimatedBackground />
 
-      {/* Floating 3D Geometric Accents in Background */}
       <motion.div animate={{ rotate: 360, y: [0, -50, 0] }} transition={{ duration: 25, repeat: Infinity, ease: "linear" }} className="absolute top-[10%] left-[10%] w-64 h-64 border border-[#2dd4bf]/20 rounded-full pointer-events-none" style={{ transformStyle: 'preserve-3d' }} />
       <motion.div animate={{ rotate: -360, y: [0, 50, 0] }} transition={{ duration: 30, repeat: Infinity, ease: "linear" }} className="absolute bottom-[10%] right-[10%] w-96 h-96 border border-[#e0231c]/20 rounded-full pointer-events-none" style={{ transformStyle: 'preserve-3d' }} />
       
@@ -195,15 +191,12 @@ export default function ApplyPage() {
             </Link>
           </motion.div>
         ) : (
-          /* THE 3D TILTING CARD */
           <motion.div 
             style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
             className="bg-[#0a0e12]/80 backdrop-blur-3xl border border-[#dfe7e0]/10 rounded-3xl p-8 md:p-12 shadow-[0_40px_100px_rgba(0,0,0,0.9)] overflow-hidden relative"
           >
-            {/* Animated Glowing Border */}
             <div className="absolute inset-0 rounded-3xl padding-1 bg-gradient-to-br from-[#2dd4bf]/50 via-transparent to-[#e0231c]/50 -z-10" style={{ maskImage: 'linear-gradient(#fff, #fff)', WebkitMaskComposite: 'xor', maskComposite: 'exclude' }} />
             
-            {/* Progress Bar */}
             <div className="absolute top-0 left-0 w-full h-1 bg-[#dfe7e0]/5">
               <motion.div className="h-full bg-gradient-to-r from-[#e0231c] to-[#2dd4bf] shadow-[0_0_10px_#2dd4bf]" initial={{ width: '0%' }} animate={{ width: `${(step / 3) * 100}%` }} transition={{ duration: 0.5 }} />
             </div>
@@ -217,7 +210,6 @@ export default function ApplyPage() {
               </p>
             </div>
 
-            {/* 🚨 STRICT SCRUTINY WARNING BANNER 🚨 */}
             <motion.div 
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -251,23 +243,34 @@ export default function ApplyPage() {
                       <h2 className="text-xl font-medium text-white tracking-wide">Identity & Background</h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
                       <motion.div whileHover={{ scale: 1.02, z: 10 }} whileFocus={{ scale: 1.02 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Full Name</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Full Name <span className="text-[#e0231c]">*</span></label>
                         <input type="text" name="full_name" required value={formData.full_name} onChange={handleChange} placeholder="John Doe" className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all" />
                       </motion.div>
-                      <motion.div whileHover={{ scale: 1.02, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Email</label>
-                        <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="john@gmail.com" className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all" />
+                      
+                      <motion.div whileHover={{ scale: 1.01 }}>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block flex items-center gap-2">
+                          Email <Lock className="w-3 h-3 text-[#78837c]" />
+                        </label>
+                        <input 
+                          type="email" 
+                          name="email" 
+                          required 
+                          readOnly 
+                          value={formData.email} 
+                          className="w-full bg-[#05070a]/50 border border-[#dfe7e0]/10 rounded-xl px-4 py-3 text-sm text-[#78837c] cursor-not-allowed outline-none" 
+                        />
                       </motion.div>
+
                       <motion.div whileHover={{ scale: 1.02, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Phone</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Phone <span className="text-[#e0231c]">*</span></label>
                         <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} placeholder="+91 98765 43210" className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all" />
                       </motion.div>
                       
-                      {/* BRANCH DROPDOWN */}
                       <motion.div whileHover={{ scale: 1.02, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Branch</label>
-                        <select name="branch" value={formData.branch} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all appearance-none cursor-pointer">
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Branch <span className="text-[#e0231c]">*</span></label>
+                        <select name="branch" required value={formData.branch} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all appearance-none cursor-pointer">
                           <option>Computer Science (CSE)</option>
                           <option>AI & Data Science</option>
                           <option>Electronics (ECE)</option>
@@ -301,11 +304,12 @@ export default function ApplyPage() {
                       </motion.div>
 
                       <motion.div whileHover={{ scale: 1.02, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Year of Study</label>
-                        <select name="year_of_study" value={formData.year_of_study} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all appearance-none cursor-pointer">
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Year of Study <span className="text-[#e0231c]">*</span></label>
+                        <select name="year_of_study" required value={formData.year_of_study} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all appearance-none cursor-pointer">
                           <option>1st Year</option><option>2nd Year</option><option>3rd Year</option><option>4th Year</option>
                         </select>
                       </motion.div>
+                      
                       <motion.div whileHover={{ scale: 1.02, z: 10 }}>
                         <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">GitHub / Portfolio</label>
                         <input type="url" name="portfolio_url" value={formData.portfolio_url} onChange={handleChange} placeholder="https://github.com/..." className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all" />
@@ -326,7 +330,7 @@ export default function ApplyPage() {
                     </div>
                     
                     <div>
-                      <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-3 block">Desired Deployment Wing</label>
+                      <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-3 block">Desired Deployment Wing <span className="text-[#e0231c]">*</span></label>
                       <div className="grid grid-cols-3 gap-4">
                         {['Software Wing', 'Hardware Wing', 'Operations'].map(wing => (
                           <motion.button 
@@ -345,13 +349,13 @@ export default function ApplyPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                       <motion.div whileHover={{ scale: 1.02, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Weekly Time Commitment</label>
-                        <select name="commitment_hours" value={formData.commitment_hours} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all appearance-none cursor-pointer">
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Weekly Time Commitment <span className="text-[#e0231c]">*</span></label>
+                        <select name="commitment_hours" required value={formData.commitment_hours} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all appearance-none cursor-pointer">
                           <option>5-10 hours</option><option>10-15 hours</option><option>15-20 hours</option><option>20+ hours</option>
                         </select>
                       </motion.div>
                       <motion.div whileHover={{ scale: 1.02, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Other Competing Priorities</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Other Competing Priorities <span className="text-[#e0231c]">*</span></label>
                         <input type="text" name="other_commitments" required value={formData.other_commitments} onChange={handleChange} placeholder="e.g., Placements, other clubs" className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all" />
                       </motion.div>
                     </div>
@@ -373,11 +377,11 @@ export default function ApplyPage() {
 
                     <div className="space-y-6">
                       <motion.div whileHover={{ scale: 1.01, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Describe the hardest technical problem you've solved.</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Describe the hardest technical problem you've solved. <span className="text-[#e0231c]">*</span></label>
                         <textarea name="hardest_problem" required value={formData.hardest_problem} onChange={handleChange} placeholder="Show us how you think. What broke, how did you fix it?" className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-4 text-sm text-white focus:border-[#2dd4bf] focus:shadow-[0_0_20px_rgba(45,212,191,0.2)] outline-none transition-all min-h-[120px] resize-none" />
                       </motion.div>
                       <motion.div whileHover={{ scale: 1.01, z: 10 }}>
-                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Why do you want to join Code Kootu specifically?</label>
+                        <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-2 block">Why do you want to join Code Kootu specifically? <span className="text-[#e0231c]">*</span></label>
                         <textarea name="why_kootu" required value={formData.why_kootu} onChange={handleChange} placeholder="What does 'We build what we wish existed' mean to you?" className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-4 text-sm text-white focus:border-[#e0231c] focus:shadow-[0_0_20px_rgba(224,35,28,0.2)] outline-none transition-all min-h-[120px] resize-none" />
                       </motion.div>
                     </div>
