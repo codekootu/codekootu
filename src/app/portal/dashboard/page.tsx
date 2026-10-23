@@ -4,13 +4,15 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { 
-  FileText, ChevronRight, Zap, Sparkles
+  FileText, ChevronRight, Zap, Sparkles, 
+  Users, ArrowRight, Clock, CheckCircle2, XCircle 
 } from 'lucide-react';
 
 export default function PublicDashboard() {
   const supabase = createClient();
   const [profile, setProfile] = useState<any>(null);
   const [ideas, setIdeas] = useState<any[]>([]);
+  const [application, setApplication] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [waitlistJoined, setWaitlistJoined] = useState(false);
@@ -20,11 +22,17 @@ export default function PublicDashboard() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
+      // Fetch Profile
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       setProfile(prof);
 
+      // Fetch Ideas
       const { data: ideasData } = await supabase.from('ideas').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
       if (ideasData) setIdeas(ideasData);
+
+      // Fetch Application Status
+      const { data: appData } = await supabase.from('applications').select('*').eq('user_id', session.user.id).maybeSingle();
+      if (appData) setApplication(appData);
       
       setLoading(false);
     }
@@ -52,7 +60,7 @@ export default function PublicDashboard() {
     <div className="max-w-6xl mx-auto p-8 md:p-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
       
       {/* Shimmering Header */}
-      <div className="mb-14 text-center md:text-left">
+      <div className="mb-10 text-center md:text-left">
         <h1 className="text-5xl md:text-6xl font-light mb-4">
           Welcome back, <br className="md:hidden" />
           <span className="relative inline-block">
@@ -66,6 +74,70 @@ export default function PublicDashboard() {
           <Sparkles className="w-4 h-4 text-[#e0231c]" /> Track the status of your submitted problems below.
         </p>
       </div>
+
+      {/* --- NEW: APPLICATION STATUS SECTION --- */}
+      <div className="mb-10">
+        {!application ? (
+          /* APPLY BANNER */
+          <div className="relative group overflow-hidden bg-gradient-to-r from-[#e0231c]/10 to-[#0a0e12]/60 backdrop-blur-xl border border-[#e0231c]/30 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(224,35,28,0.15)] animate-in slide-in-from-top-4 duration-700">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#e0231c]/10 blur-[80px] pointer-events-none group-hover:bg-[#e0231c]/20 transition-all duration-500" />
+            <div className="relative z-10">
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                <Users className="w-6 h-6 text-[#e0231c]" /> Join the Collective
+              </h3>
+              <p className="text-sm text-[#aab4ad] max-w-lg">
+                We are currently accepting applications for the Software, Hardware, and Operations wings. Do you have what it takes to build the future?
+              </p>
+            </div>
+            <Link href="/apply" className="relative z-10 shrink-0 px-6 py-3 bg-[#e0231c] text-white font-bold uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(224,35,28,0.4)] flex items-center gap-2 text-sm">
+              Apply Now <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        ) : (
+          /* APPLICATION TRACKER */
+          <div className="relative bg-[#0a0e12]/80 backdrop-blur-xl border border-[#2dd4bf]/30 rounded-2xl p-6 md:p-8 shadow-[0_0_30px_rgba(45,212,191,0.1)] animate-in zoom-in-95 duration-500 overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#2dd4bf] to-transparent animate-pulse" />
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div>
+                <p className="text-[10px] font-mono text-[#2dd4bf] uppercase tracking-[0.3em] mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#2dd4bf] animate-ping" /> Application Status
+                </p>
+                <h3 className="text-2xl font-light text-white">
+                  Current Phase: <span className="font-bold text-[#2dd4bf]">{application.status.toUpperCase()}</span>
+                </h3>
+                
+                {/* Show stats if published/accepted */}
+                {application.is_published && application.final_decision === 'Accepted' && (
+                   <div className="flex gap-4 mt-3">
+                     <span className="text-xs font-mono bg-[#2dd4bf]/10 text-[#2dd4bf] px-2 py-1 rounded">Avg Rating: {application.avg_rating}/5</span>
+                     <span className="text-xs font-mono bg-[#2dd4bf]/10 text-[#2dd4bf] px-2 py-1 rounded">Approval: {application.endorse_percent}%</span>
+                   </div>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="text-right hidden md:block">
+                  <p className="text-[10px] font-mono text-[#78837c] uppercase">Desired Wing</p>
+                  <p className="text-sm font-medium text-white">{application.desired_wing}</p>
+                </div>
+                <div className="w-14 h-14 rounded-full bg-[#05070a] border border-[#2dd4bf]/30 flex items-center justify-center shadow-[0_0_20px_rgba(45,212,191,0.2)]">
+                  {application.status === 'Pending' && <Clock className="w-6 h-6 text-[#2dd4bf] animate-pulse" />}
+                  {application.status === 'Accepted' && <CheckCircle2 className="w-6 h-6 text-[#2dd4bf]" />}
+                  {application.status === 'Rejected' && <XCircle className="w-6 h-6 text-[#e0231c]" />}
+                </div>
+              </div>
+            </div>
+            
+            {application.status === 'Pending' && (
+              <p className="mt-4 text-xs text-[#78837c] font-mono italic">
+                * The Executive Board is currently reviewing your profile. Please monitor this dashboard for updates.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+      {/* -------------------------------------- */}
 
       {/* Floating Waitlist Banner */}
       {!waitlistJoined && (
