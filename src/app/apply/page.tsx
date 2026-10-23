@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, ArrowRight, CheckCircle2, User, Clock, Zap, ShieldAlert, LogIn
 } from 'lucide-react';
-import AnimatedBackground from '@/components/AnimatedBackground'; // Import the background
+import AnimatedBackground from '@/components/AnimatedBackground';
 
 export default function ApplyPage() {
   const supabase = createClient();
@@ -51,10 +51,15 @@ export default function ApplyPage() {
     setLoading(true);
     setErrorMsg(null);
 
+    // 1. Strip custom_branch out of the formData so Supabase doesn't throw a schema error
+    const { custom_branch, ...dataToSubmit } = formData;
+
+    // 2. Merge the custom text into the main branch string if "Other" was selected
     const finalBranch = formData.branch === 'Other' ? `Other: ${formData.custom_branch}` : formData.branch;
 
+    // 3. Insert the cleaned data
     const { error } = await supabase.from('applications').insert({
-      ...formData,
+      ...dataToSubmit,
       branch: finalBranch, 
       user_id: user.id,
       status: 'Pending'
