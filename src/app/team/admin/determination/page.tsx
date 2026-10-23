@@ -127,7 +127,7 @@ export default function FinalDeterminationPanel() {
           <FileText className="w-4 h-4" /> Idea Approvals ({ideas.length})
         </button>
         
-        {/* NEW TAB: FINAL MEMBER VERDICTS */}
+        {/* 🔥 THIS IS THE NEW TAB YOU ARE LOOKING FOR 🔥 */}
         <button 
           onClick={() => setActiveTab('members')}
           className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'members' ? 'border-[#2dd4bf] text-[#2dd4bf]' : 'border-transparent text-[#78837c] hover:text-white'}`}
