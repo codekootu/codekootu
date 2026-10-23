@@ -31,7 +31,6 @@ export default function TeamReviewPage() {
         setProfile(p);
       }
       
-      // Fetch applications AND their nested reviews in one query
       const { data } = await supabase
         .from('applications')
         .select(`
@@ -49,13 +48,12 @@ export default function TeamReviewPage() {
   const selectedApp = applications.find(a => a.id === selectedAppId);
   const reviews = selectedApp?.application_reviews || [];
 
-  // Check if current user has reviewed the selected applicant
   useEffect(() => {
     if (selectedApp && profile) {
       const myReview = reviews.find((r: any) => r.reviewer_id === profile.id);
       if (myReview) {
         setVote(myReview.vote);
-        setComment(myReview.comment);
+        setComment(myReview.comment || '');
         setRating(myReview.rating || 50);
         setHasReviewed(true);
       } else {
@@ -64,14 +62,14 @@ export default function TeamReviewPage() {
         setRating(50);
         setHasReviewed(false);
       }
-      setIsFormOpen(false); // Close form on new selection
+      setIsFormOpen(false);
       setExpandedReviewId(null);
     }
   }, [selectedAppId, profile, selectedApp?.application_reviews]);
 
   const handleReviewSubmit = async () => {
     if (!vote || comment.length < 5) {
-      return alert("Please select a vote and leave a comment.");
+      return alert("Please select a vote and leave a comment (min 5 chars).");
     }
     if (rating < 1 || rating > 100) {
       return alert("Rating must be between 1 and 100.");
@@ -91,7 +89,6 @@ export default function TeamReviewPage() {
     });
 
     if (!error) {
-      // Refetch applications to update sidebar status
       const { data } = await supabase
         .from('applications')
         .select(`*, application_reviews (*)`)
@@ -129,12 +126,15 @@ export default function TeamReviewPage() {
                 onClick={() => setSelectedAppId(app.id)}
                 className={`w-full text-left p-4 border-b border-[#dfe7e0]/5 transition-colors flex justify-between items-center group ${isSelected ? 'bg-[#dfe7e0]/10 border-l-2 border-l-[#2dd4bf]' : 'border-l-2 border-l-transparent hover:bg-[#dfe7e0]/5'}`}
               >
-                <span className={`font-medium ${isSelected ? 'text-white' : 'text-[#aab4ad] group-hover:text-white'}`}>{app.full_name}</span>
+                {/* Fallback to Email if Name is missing */}
+                <span className={`font-medium truncate pr-2 ${isSelected ? 'text-white' : 'text-[#aab4ad] group-hover:text-white'}`}>
+                  {app.full_name || app.email || 'Unnamed Candidate'}
+                </span>
                 
                 {myReview ? (
-                  <span className="text-[9px] px-2 py-1 rounded bg-[#2dd4bf]/10 text-[#2dd4bf] font-mono border border-[#2dd4bf]/20">VOTED</span>
+                  <span className="text-[9px] px-2 py-1 shrink-0 rounded bg-[#2dd4bf]/10 text-[#2dd4bf] font-mono border border-[#2dd4bf]/20">VOTED</span>
                 ) : (
-                  <span className="text-[9px] px-2 py-1 rounded bg-[#e0231c]/10 text-[#e0231c] font-mono border border-[#e0231c]/20 animate-pulse">VOTE NOW</span>
+                  <span className="text-[9px] px-2 py-1 shrink-0 rounded bg-[#e0231c]/10 text-[#e0231c] font-mono border border-[#e0231c]/20 animate-pulse">VOTE NOW</span>
                 )}
               </button>
             );
@@ -158,11 +158,13 @@ export default function TeamReviewPage() {
               
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h2 className="text-3xl font-light text-white mb-2">{selectedApp.full_name}</h2>
+                  {/* Fallback for Name */}
+                  <h2 className="text-3xl font-light text-white mb-2">{selectedApp.full_name || 'Unnamed Candidate'}</h2>
                   <div className="flex gap-4 text-xs text-[#78837c] font-mono">
                     <span>{selectedApp.email}</span>
                     <span>•</span>
-                    <span>{selectedApp.phone}</span>
+                    {/* Fallback for Phone */}
+                    <span>{selectedApp.phone || 'No phone provided'}</span>
                     {selectedApp.portfolio_url && (
                       <>
                         <span>•</span>
@@ -176,19 +178,20 @@ export default function TeamReviewPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
                   <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Wing</p>
-                  <p className="font-medium text-sm">{selectedApp.desired_wing}</p>
+                  <p className="font-medium text-sm">{selectedApp.desired_wing || 'Not Provided'}</p>
                 </div>
                 <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
                   <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Branch</p>
-                  <p className="font-medium text-sm">{selectedApp.branch}</p>
+                  <p className="font-medium text-sm">{selectedApp.branch || 'Not Provided'}</p>
                 </div>
                 <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
                   <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Hours/Week</p>
-                  <p className="font-medium text-sm text-[#2dd4bf]">{selectedApp.commitment_hours}</p>
+                  <p className="font-medium text-sm text-[#2dd4bf]">{selectedApp.commitment_hours || 'Not Provided'}</p>
                 </div>
                 <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
                   <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Other Commitments</p>
-                  <p className="font-medium text-xs">{selectedApp.other_commitments}</p>
+                  {/* Fallback for Commitments */}
+                  <p className="font-medium text-xs">{selectedApp.other_commitments || 'None'}</p>
                 </div>
               </div>
             </div>
@@ -197,11 +200,11 @@ export default function TeamReviewPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-6">
                 <h3 className="text-[11px] font-bold text-[#e0231c] uppercase tracking-widest mb-4">Hardest Technical Problem</h3>
-                <p className="text-sm leading-relaxed text-[#aab4ad] whitespace-pre-wrap">{selectedApp.hardest_problem}</p>
+                <p className="text-sm leading-relaxed text-[#aab4ad] whitespace-pre-wrap">{selectedApp.hardest_problem || 'Not Provided'}</p>
               </div>
               <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-6">
                 <h3 className="text-[11px] font-bold text-[#2dd4bf] uppercase tracking-widest mb-4">Why Code Kootu?</h3>
-                <p className="text-sm leading-relaxed text-[#aab4ad] whitespace-pre-wrap">{selectedApp.why_kootu}</p>
+                <p className="text-sm leading-relaxed text-[#aab4ad] whitespace-pre-wrap">{selectedApp.why_kootu || 'Not Provided'}</p>
               </div>
             </div>
 
@@ -220,7 +223,6 @@ export default function TeamReviewPage() {
                 )}
               </div>
               
-              {/* Accordion List of Reviews */}
               <div className="space-y-2 mb-6">
                 {reviews.length === 0 ? (
                   <p className="text-sm text-[#78837c] italic py-4 text-center border border-dashed border-[#dfe7e0]/10 rounded-xl">No votes cast yet. Be the first.</p>
@@ -237,14 +239,14 @@ export default function TeamReviewPage() {
                         >
                           <div className="flex items-center gap-3">
                             <span className={`font-medium text-sm ${isMe ? 'text-[#2dd4bf]' : 'text-[#dfe7e0]'}`}>
-                              {rev.reviewer_name} {isMe && '(You)'}
+                              {rev.reviewer_name || 'Team Member'} {isMe && '(You)'}
                             </span>
                             <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${rev.vote === 'Endorse' ? 'bg-[#2dd4bf]/10 text-[#2dd4bf]' : 'bg-red-500/10 text-red-400'}`}>
                               {rev.vote}
                             </span>
                           </div>
                           <div className="flex items-center gap-4">
-                            <span className="text-xs font-mono text-[#78837c]">Score: <strong className="text-white">{rev.rating}</strong>/100</span>
+                            <span className="text-xs font-mono text-[#78837c]">Score: <strong className="text-white">{rev.rating || 0}</strong>/100</span>
                             {isExpanded ? <ChevronUp className="w-4 h-4 text-[#78837c]" /> : <ChevronDown className="w-4 h-4 text-[#78837c]" />}
                           </div>
                         </button>
@@ -258,7 +260,7 @@ export default function TeamReviewPage() {
                               className="overflow-hidden"
                             >
                               <div className="px-5 pb-4 pt-2 border-t border-[#dfe7e0]/5">
-                                <p className="text-sm text-[#aab4ad] leading-relaxed italic">"{rev.comment}"</p>
+                                <p className="text-sm text-[#aab4ad] leading-relaxed italic">"{rev.comment || 'No comment provided.'}"</p>
                               </div>
                             </motion.div>
                           )}
@@ -269,7 +271,7 @@ export default function TeamReviewPage() {
                 )}
               </div>
 
-              {/* Voting Form (Animated Open/Close) */}
+              {/* Voting Form */}
               <AnimatePresence>
                 {isFormOpen && (
                   <motion.div 
@@ -285,7 +287,6 @@ export default function TeamReviewPage() {
                         <button onClick={() => setIsFormOpen(false)} className="text-[#78837c] hover:text-white"><X className="w-5 h-5"/></button>
                       </div>
 
-                      {/* 1-100 Rating System */}
                       <div className="mb-6 bg-[#05070a] p-5 rounded-xl border border-[#dfe7e0]/5">
                         <div className="flex justify-between items-center mb-4">
                           <p className="text-sm font-medium flex items-center gap-2"><SlidersHorizontal className="w-4 h-4 text-[#2dd4bf]"/> Candidate Score (1-100)</p>
@@ -306,11 +307,6 @@ export default function TeamReviewPage() {
                           onChange={(e) => setRating(Number(e.target.value))}
                           className="w-full accent-[#2dd4bf] h-2 bg-[#0a0e12] rounded-lg appearance-none cursor-pointer"
                         />
-                        <div className="flex justify-between text-[10px] text-[#78837c] mt-2 font-mono">
-                          <span>1 (Poor)</span>
-                          <span>50 (Average)</span>
-                          <span>100 (God Tier)</span>
-                        </div>
                       </div>
 
                       <div className="flex gap-4 mb-4">
