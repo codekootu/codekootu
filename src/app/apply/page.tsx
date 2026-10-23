@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { 
-  ArrowLeft, ArrowRight, CheckCircle2, User, Clock, Zap, ShieldAlert, LogIn, Sparkles
+  ArrowLeft, ArrowRight, CheckCircle2, User, Clock, Zap, ShieldAlert, LogIn, Sparkles, AlertTriangle
 } from 'lucide-react';
 import AnimatedBackground from '@/components/AnimatedBackground';
 
@@ -33,7 +33,6 @@ export default function ApplyPage() {
   const mouseXSpring = useSpring(x, { stiffness: 150, damping: 25 });
   const mouseYSpring = useSpring(y, { stiffness: 150, damping: 25 });
   
-  // Tilt the whole card
   const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["8deg", "-8deg"]);
   const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-8deg", "8deg"]);
 
@@ -98,7 +97,6 @@ export default function ApplyPage() {
     }
   };
 
-  // --- HEAVY 3D FLIP VARIANTS ---
   const slideVariants = {
     enter: (direction: number) => ({ 
       x: direction > 0 ? 200 : -200, 
@@ -210,7 +208,7 @@ export default function ApplyPage() {
               <motion.div className="h-full bg-gradient-to-r from-[#e0231c] to-[#2dd4bf] shadow-[0_0_10px_#2dd4bf]" initial={{ width: '0%' }} animate={{ width: `${(step / 3) * 100}%` }} transition={{ duration: 0.5 }} />
             </div>
 
-            <div className="text-center mb-12 relative z-10" style={{ transform: "translateZ(30px)" }}>
+            <div className="text-center mb-8 relative z-10" style={{ transform: "translateZ(30px)" }}>
               <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter drop-shadow-xl">
                 JOIN THE <span className="text-[#e0231c]">COLLECTIVE.</span>
               </h1>
@@ -218,6 +216,23 @@ export default function ApplyPage() {
                 <span className="w-2 h-2 rounded-full bg-[#2dd4bf] animate-ping" /> Phase {step} of 3
               </p>
             </div>
+
+            {/* 🚨 STRICT SCRUTINY WARNING BANNER 🚨 */}
+            <motion.div 
+              initial={{ opacity: 0, y: -20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.3, type: "spring" }}
+              className="mb-8 p-4 rounded-xl bg-[#e0231c]/10 border border-[#e0231c]/30 flex items-start gap-4 shadow-[0_0_20px_rgba(224,35,28,0.15)] relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-1 h-full bg-[#e0231c] animate-pulse" />
+              <AlertTriangle className="w-6 h-6 text-[#e0231c] shrink-0 animate-bounce" />
+              <div>
+                <p className="text-sm font-bold text-[#e0231c] uppercase tracking-wider mb-1">Strict Scrutiny Protocol Active</p>
+                <p className="text-xs text-[#aab4ad] leading-relaxed font-mono">
+                  All submissions are deeply vetted by the Executive Board. Falsified information, spam, or low-effort applications will be immediately discarded and permanently blacklisted.
+                </p>
+              </div>
+            </motion.div>
 
             {errorMsg && (
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-mono text-center shadow-[0_0_20px_rgba(255,0,0,0.1)]">
