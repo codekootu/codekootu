@@ -96,7 +96,7 @@ export default function FinalDeterminationPanel() {
     if (error) {
       alert(error.message);
     } else {
-      fetchData(); // Refresh list (the app will disappear from this pending list)
+      fetchData(); // Refresh list
     }
     setActionLoading(null);
   };
@@ -127,7 +127,7 @@ export default function FinalDeterminationPanel() {
           <FileText className="w-4 h-4" /> Idea Approvals ({ideas.length})
         </button>
         
-        {/* 🔥 THIS IS THE NEW TAB YOU ARE LOOKING FOR 🔥 */}
+        {/* 🔥 THIS IS THE TAB YOU ARE LOOKING FOR 🔥 */}
         <button 
           onClick={() => setActiveTab('members')}
           className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'members' ? 'border-[#2dd4bf] text-[#2dd4bf]' : 'border-transparent text-[#78837c] hover:text-white'}`}
@@ -238,7 +238,7 @@ export default function FinalDeterminationPanel() {
                         
                         <div className="flex justify-between items-start mb-6 border-b border-[#dfe7e0]/10 pb-4">
                           <div>
-                            <h2 className="text-2xl font-medium text-white">{app.full_name}</h2>
+                            <h2 className="text-2xl font-medium text-white">{app.full_name || 'Unnamed Candidate'}</h2>
                             <p className="text-sm text-[#78837c] font-mono mt-1">{app.desired_wing} • {app.branch} ({app.year_of_study})</p>
                           </div>
                           <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#2dd4bf]/20 text-[#2dd4bf] animate-pulse">
