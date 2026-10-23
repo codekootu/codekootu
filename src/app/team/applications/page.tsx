@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ShieldAlert, Check, X, MessageSquare, User, ExternalLink } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ShieldAlert, Check, X, MessageSquare, User, ExternalLink, SlidersHorizontal } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function TeamReviewPage() {
   const supabase = createClient();
@@ -16,6 +16,7 @@ export default function TeamReviewPage() {
   // Review state
   const [vote, setVote] = useState<'Endorse' | 'Reject' | null>(null);
   const [comment, setComment] = useState('');
+  const [rating, setRating] = useState<number>(50); // Default rating 50
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -43,10 +44,17 @@ export default function TeamReviewPage() {
     loadReviews(app.id);
     setVote(null);
     setComment('');
+    setRating(50); // Reset rating on new selection
   };
 
   const handleReviewSubmit = async () => {
-    if (!vote || comment.length < 5) return alert("Please select a vote and leave a comment.");
+    if (!vote || comment.length < 5) {
+      return alert("Please select a vote and leave a comment.");
+    }
+    if (rating < 1 || rating > 100) {
+      return alert("Rating must be between 1 and 100.");
+    }
+    
     setSubmitting(true);
 
     const { error } = await supabase.from('application_reviews').insert({
@@ -54,20 +62,22 @@ export default function TeamReviewPage() {
       reviewer_id: profile.id,
       reviewer_name: profile.full_name,
       vote: vote,
-      comment: comment
+      comment: comment,
+      rating: rating // 1-100 rating
     });
 
     if (!error) {
       loadReviews(selectedApp.id);
       setVote(null);
       setComment('');
+      setRating(50);
     } else {
       alert(error.message);
     }
     setSubmitting(false);
   };
 
-  if (loading) return <div className="text-white p-10">Loading Applications...</div>;
+  if (loading) return <div className="text-white p-10 font-mono">Loading Applications...</div>;
 
   return (
     <div className="flex h-screen bg-[#05070a] text-[#dfe7e0] overflow-hidden">
@@ -76,7 +86,7 @@ export default function TeamReviewPage() {
       <div className="w-1/3 border-r border-[#dfe7e0]/10 flex flex-col">
         <div className="p-6 border-b border-[#dfe7e0]/10 bg-[#0a0e12]">
           <h1 className="text-xl font-bold flex items-center gap-2"><ShieldAlert className="text-[#e0231c]" /> Applicant Pipeline</h1>
-          <p className="text-xs text-[#78837c] mt-1">{applications.length} Total Applications</p>
+          <p className="text-xs text-[#78837c] mt-1 font-mono">{applications.length} Total Applications</p>
         </div>
         <div className="flex-1 overflow-y-auto">
           {applications.map(app => (
@@ -164,7 +174,10 @@ export default function TeamReviewPage() {
                   <div key={rev.id} className="p-4 rounded-xl bg-[#05070a] border border-[#dfe7e0]/5">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-bold text-sm text-[#dfe7e0]">{rev.reviewer_name}</span>
-                      <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded ${rev.vote === 'Endorse' ? 'bg-[#2dd4bf]/10 text-[#2dd4bf]' : 'bg-red-500/10 text-red-400'}`}>{rev.vote}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-mono text-[#2dd4bf]">Score: {rev.rating}/100</span>
+                        <span className={`text-[10px] uppercase font-bold px-2 py-1 rounded ${rev.vote === 'Endorse' ? 'bg-[#2dd4bf]/10 text-[#2dd4bf]' : 'bg-red-500/10 text-red-400'}`}>{rev.vote}</span>
+                      </div>
                     </div>
                     <p className="text-sm text-[#aab4ad]">{rev.comment}</p>
                   </div>
@@ -173,6 +186,35 @@ export default function TeamReviewPage() {
 
               {/* Add Review Form */}
               <div className="border-t border-[#dfe7e0]/10 pt-6">
+                
+                {/* 1-100 Rating System */}
+                <div className="mb-6 bg-[#05070a] p-5 rounded-xl border border-[#dfe7e0]/5">
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-sm font-medium flex items-center gap-2"><SlidersHorizontal className="w-4 h-4 text-[#2dd4bf]"/> Candidate Score (1-100)</p>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="100" 
+                      value={rating} 
+                      onChange={(e) => setRating(Number(e.target.value))}
+                      className="w-20 bg-[#0a0e12] border border-[#2dd4bf]/50 text-[#2dd4bf] text-center font-bold rounded-lg px-2 py-1 outline-none focus:border-[#2dd4bf]"
+                    />
+                  </div>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="100" 
+                    value={rating} 
+                    onChange={(e) => setRating(Number(e.target.value))}
+                    className="w-full accent-[#2dd4bf] h-2 bg-[#0a0e12] rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-[#78837c] mt-2 font-mono">
+                    <span>1 (Poor)</span>
+                    <span>50 (Average)</span>
+                    <span>100 (God Tier)</span>
+                  </div>
+                </div>
+
                 <p className="text-sm font-medium mb-4">Cast your vote (Required)</p>
                 <div className="flex gap-4 mb-4">
                   <button onClick={() => setVote('Endorse')} className={`flex-1 py-3 rounded-xl border flex items-center justify-center gap-2 font-bold uppercase tracking-wider transition-all ${vote === 'Endorse' ? 'bg-[#2dd4bf] text-black border-[#2dd4bf]' : 'bg-transparent text-[#2dd4bf] border-[#2dd4bf]/30 hover:bg-[#2dd4bf]/10'}`}><Check className="w-4 h-4"/> Endorse</button>
