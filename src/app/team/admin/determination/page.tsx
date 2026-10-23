@@ -2,337 +2,296 @@
 
 import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { ShieldAlert, Check, X, MessageSquare, User, ExternalLink, SlidersHorizontal, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
+import Link from 'next/link';
+import { 
+  ShieldAlert, CheckCircle2, XCircle, FileText, Package, 
+  Users, ArrowLeft, Check, User, Trophy
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function TeamReviewPage() {
+export default function FinalDeterminationPanel() {
   const supabase = createClient();
+  const [activeTab, setActiveTab] = useState<'ideas' | 'restock' | 'members'>('ideas');
+  
+  // Data States
+  const [ideas, setIdeas] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
-  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  
+  // Loading & Action States
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
-  
-  // Review state
-  const [vote, setVote] = useState<'Endorse' | 'Reject' | null>(null);
-  const [comment, setComment] = useState('');
-  const [rating, setRating] = useState<number>(50);
-  const [submitting, setSubmitting] = useState(false);
-  const [hasReviewed, setHasReviewed] = useState(false);
-  
-  // UI State
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [expandedReviewId, setExpandedReviewId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Wing options for the dropdown
+  const wings = ['Software Wing', 'Hardware Wing', 'Operations Wing'];
 
   useEffect(() => {
-    async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        setProfile(p);
-      }
+    fetchData();
+  }, [activeTab]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    if (activeTab === 'ideas') {
+      const { data } = await supabase
+        .from('ideas')
+        .select('*')
+        .eq('status', 'Received') 
+        .order('created_at', { ascending: false });
       
-      // Fetch applications AND their nested reviews in one query
+      if (data) setIdeas(data);
+      setLoading(false);
+    } 
+    else if (activeTab === 'members') {
       const { data } = await supabase
         .from('applications')
         .select(`
           *,
           application_reviews (*)
         `)
+        .eq('is_published', false) // Only fetch those not yet published
         .order('created_at', { ascending: false });
         
       if (data) setApplications(data);
       setLoading(false);
+    } 
+    else {
+      setLoading(false);
     }
-    loadData();
-  }, [supabase]);
-
-  const selectedApp = applications.find(a => a.id === selectedAppId);
-  const reviews = selectedApp?.application_reviews || [];
-
-  // Check if current user has reviewed the selected applicant
-  useEffect(() => {
-    if (selectedApp && profile) {
-      const myReview = reviews.find((r: any) => r.reviewer_id === profile.id);
-      if (myReview) {
-        setVote(myReview.vote);
-        setComment(myReview.comment);
-        setRating(myReview.rating || 50);
-        setHasReviewed(true);
-      } else {
-        setVote(null);
-        setComment('');
-        setRating(50);
-        setHasReviewed(false);
-      }
-      setIsFormOpen(false); // Close form on new selection
-      setExpandedReviewId(null);
-    }
-  }, [selectedAppId, profile, selectedApp?.application_reviews]);
-
-  const handleReviewSubmit = async () => {
-    if (!vote || comment.length < 5) {
-      return alert("Please select a vote and leave a comment.");
-    }
-    if (rating < 1 || rating > 100) {
-      return alert("Rating must be between 1 and 100.");
-    }
-    
-    setSubmitting(true);
-
-    const { error } = await supabase.from('application_reviews').upsert({
-      application_id: selectedApp.id,
-      reviewer_id: profile.id,
-      reviewer_name: profile.full_name,
-      vote: vote,
-      comment: comment,
-      rating: rating
-    }, { 
-      onConflict: 'application_id,reviewer_id' 
-    });
-
-    if (!error) {
-      // Refetch applications to update sidebar status
-      const { data } = await supabase
-        .from('applications')
-        .select(`*, application_reviews (*)`)
-        .order('created_at', { ascending: false });
-      if (data) setApplications(data);
-      
-      setHasReviewed(true);
-      setIsFormOpen(false);
-    } else {
-      alert(error.message);
-    }
-    setSubmitting(false);
   };
 
-  if (loading) return <div className="text-white p-10 font-mono flex items-center justify-center h-screen"><div className="w-6 h-6 border-2 border-[#2dd4bf]/20 border-t-[#2dd4bf] rounded-full animate-spin mr-3" /> Loading Pipeline...</div>;
+  // --- IDEA APPROVAL ACTIONS ---
+  const handleIdeaAction = async (ideaId: string, action: 'Approved' | 'Rejected', assignedWing: string) => {
+    setActionLoading(ideaId);
+    
+    const { error } = await supabase
+      .from('ideas')
+      .update({
+        status: action,
+        assigned_wing: action === 'Approved' ? assignedWing : null
+      })
+      .eq('id', ideaId);
+
+    if (error) {
+      alert(error.message);
+    } else {
+      fetchData(); 
+    }
+    setActionLoading(null);
+  };
+
+  // --- FINAL MEMBER VERDICT ACTIONS ---
+  const handleFinalVerdict = async (app: any, decision: 'Accepted' | 'Rejected', stats: any) => {
+    setActionLoading(app.id);
+    
+    const { error } = await supabase
+      .from('applications')
+      .update({
+        is_published: true,
+        final_decision: decision,
+        avg_rating: stats.avgRating,
+        endorse_percent: stats.endorsePercent,
+        status: decision // Instantly updates user portal
+      })
+      .eq('id', app.id);
+
+    if (error) {
+      alert(error.message);
+    } else {
+      fetchData(); // Refresh list (the app will disappear from this pending list)
+    }
+    setActionLoading(null);
+  };
+
 
   return (
-    <div className="flex h-screen bg-[#05070a] text-[#dfe7e0] overflow-hidden">
+    <div className="min-h-screen bg-[#05070a] text-[#dfe7e0] flex flex-col font-sans">
       
-      {/* Sidebar List of Applicants */}
-      <div className="w-80 border-r border-[#dfe7e0]/10 flex flex-col bg-[#0a0e12]">
-        <div className="p-6 border-b border-[#dfe7e0]/10">
-          <h1 className="text-lg font-bold flex items-center gap-2"><ShieldAlert className="text-[#e0231c] w-5 h-5" /> Pipeline</h1>
-          <p className="text-[10px] text-[#78837c] mt-1 font-mono uppercase tracking-widest">{applications.length} Applicants</p>
+      {/* Header */}
+      <div className="border-b border-[#dfe7e0]/10 p-6 bg-[#0a0e12]">
+        <div className="flex items-center gap-4 mb-2">
+          <Link href="/team/admin" className="text-[#78837c] hover:text-white transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <h1 className="text-2xl font-light flex items-center gap-3">
+            <ShieldAlert className="text-[#e0231c] w-6 h-6" /> Final Determination Panel
+          </h1>
         </div>
-        
-        <div className="flex-1 overflow-y-auto">
-          {applications.map(app => {
-            const myReview = app.application_reviews?.find((r: any) => r.reviewer_id === profile?.id);
-            const isSelected = selectedAppId === app.id;
-
-            return (
-              <button 
-                key={app.id} 
-                onClick={() => setSelectedAppId(app.id)}
-                className={`w-full text-left p-4 border-b border-[#dfe7e0]/5 transition-colors flex justify-between items-center group ${isSelected ? 'bg-[#dfe7e0]/10 border-l-2 border-l-[#2dd4bf]' : 'border-l-2 border-l-transparent hover:bg-[#dfe7e0]/5'}`}
-              >
-                <span className={`font-medium ${isSelected ? 'text-white' : 'text-[#aab4ad] group-hover:text-white'}`}>{app.full_name}</span>
-                
-                {myReview ? (
-                  <span className="text-[9px] px-2 py-1 rounded bg-[#2dd4bf]/10 text-[#2dd4bf] font-mono border border-[#2dd4bf]/20">VOTED</span>
-                ) : (
-                  <span className="text-[9px] px-2 py-1 rounded bg-[#e0231c]/10 text-[#e0231c] font-mono border border-[#e0231c]/20 animate-pulse">VOTE NOW</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <p className="text-[#78837c] text-xs font-mono ml-9">Review votes, allocate sprints, and approve inventory</p>
       </div>
 
-      {/* Main Review Area */}
-      <div className="flex-1 overflow-y-auto bg-[#05070a] p-8 md:p-12 relative">
-        {!selectedApp ? (
-          <div className="h-full flex flex-col items-center justify-center text-[#78837c] opacity-50">
-            <User className="w-20 h-20 mb-6" />
-            <p className="font-mono text-sm uppercase tracking-widest">Select an applicant to view details</p>
-          </div>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto space-y-8 pb-20">
-            
-            {/* Header Info */}
-            <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#e0231c]/10 blur-[100px] pointer-events-none" />
-              
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h2 className="text-3xl font-light text-white mb-2">{selectedApp.full_name}</h2>
-                  <div className="flex gap-4 text-xs text-[#78837c] font-mono">
-                    <span>{selectedApp.email}</span>
-                    <span>•</span>
-                    <span>{selectedApp.phone}</span>
-                    {selectedApp.portfolio_url && (
-                      <>
-                        <span>•</span>
-                        <a href={selectedApp.portfolio_url} target="_blank" className="text-[#2dd4bf] hover:underline flex items-center gap-1">Portfolio <ExternalLink className="w-3 h-3" /></a>
-                      </>
-                    )}
+      {/* Tabs */}
+      <div className="flex border-b border-[#dfe7e0]/10 px-6 bg-[#0a0e12] overflow-x-auto">
+        <button 
+          onClick={() => setActiveTab('ideas')}
+          className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'ideas' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'}`}
+        >
+          <FileText className="w-4 h-4" /> Idea Approvals ({ideas.length})
+        </button>
+        
+        {/* NEW TAB: FINAL MEMBER VERDICTS */}
+        <button 
+          onClick={() => setActiveTab('members')}
+          className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'members' ? 'border-[#2dd4bf] text-[#2dd4bf]' : 'border-transparent text-[#78837c] hover:text-white'}`}
+        >
+          <Trophy className="w-4 h-4" /> Final Member Verdicts
+        </button>
+
+        <button 
+          onClick={() => setActiveTab('restock')}
+          className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'restock' ? 'border-[#e0231c] text-white' : 'border-transparent text-[#78837c] hover:text-white'}`}
+        >
+          <Package className="w-4 h-4" /> Restock Requests
+        </button>
+      </div>
+
+      {/* Content Area */}
+      <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-[#05070a]">
+        <AnimatePresence mode="wait">
+          
+          {/* ================= IDEA APPROVALS TAB ================= */}
+          {activeTab === 'ideas' && (
+            <motion.div key="ideas" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto space-y-6">
+              {loading ? (
+                <div className="text-center py-20 text-[#2dd4bf] font-mono animate-pulse">Loading Ideas...</div>
+              ) : ideas.length === 0 ? (
+                <div className="text-center py-20 border border-dashed border-[#dfe7e0]/10 rounded-2xl text-[#78837c]">No pending ideas to review.</div>
+              ) : (
+                ideas.map(idea => (
+                  <div key={idea.id} className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-6">
+                    <div className="mb-4">
+                      <p className="text-[10px] text-[#e0231c] font-mono uppercase tracking-widest mb-2">Pending Admin Action • Target: {idea.target_wing || 'Unassigned'}</p>
+                      <h2 className="text-2xl font-medium text-white mb-2">{idea.title}</h2>
+                      <p className="text-sm text-[#78837c] leading-relaxed">{idea.description}</p>
+                    </div>
+
+                    <div className="bg-[#05070a] border border-[#dfe7e0]/5 rounded-xl p-4 mb-6">
+                      <h3 className="text-[10px] text-[#78837c] uppercase font-mono tracking-widest mb-3 flex items-center gap-2">
+                        <Users className="w-3 h-3" /> Committee Votes & Endorsements
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-[#2dd4bf] bg-[#2dd4bf]/10 px-3 py-2 rounded-lg w-fit border border-[#2dd4bf]/20">
+                          <CheckCircle2 className="w-3 h-3" /> Accepted by Austin M J
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-4 items-center">
+                      <select 
+                        id={`wing-${idea.id}`}
+                        defaultValue={idea.target_wing || 'Software Wing'}
+                        className="w-full md:w-48 bg-[#05070a] border border-[#dfe7e0]/15 text-sm rounded-xl px-4 py-3 text-white outline-none focus:border-[#2dd4bf] appearance-none"
+                      >
+                        {wings.map(w => <option key={w} value={w}>{w}</option>)}
+                      </select>
+                      
+                      <button 
+                        onClick={() => {
+                          const select = document.getElementById(`wing-${idea.id}`) as HTMLSelectElement;
+                          handleIdeaAction(idea.id, 'Approved', select.value);
+                        }}
+                        disabled={actionLoading === idea.id}
+                        className="flex-1 w-full py-3 bg-[#2dd4bf]/10 border border-[#2dd4bf]/30 text-[#2dd4bf] font-bold uppercase tracking-wider text-xs rounded-xl hover:bg-[#2dd4bf]/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle2 className="w-4 h-4" /> Approve & Allocate
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleIdeaAction(idea.id, 'Rejected', '')}
+                        disabled={actionLoading === idea.id}
+                        className="w-full md:w-32 py-3 bg-red-500/10 border border-red-500/30 text-red-400 font-bold uppercase tracking-wider text-xs rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" /> Reject
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
-                  <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Wing</p>
-                  <p className="font-medium text-sm">{selectedApp.desired_wing}</p>
-                </div>
-                <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
-                  <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Branch</p>
-                  <p className="font-medium text-sm">{selectedApp.branch}</p>
-                </div>
-                <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
-                  <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Hours/Week</p>
-                  <p className="font-medium text-sm text-[#2dd4bf]">{selectedApp.commitment_hours}</p>
-                </div>
-                <div className="bg-[#05070a] p-4 rounded-xl border border-[#dfe7e0]/5">
-                  <p className="text-[10px] uppercase text-[#78837c] font-mono mb-1">Other Commitments</p>
-                  <p className="font-medium text-xs">{selectedApp.other_commitments}</p>
-                </div>
-              </div>
-            </div>
+                ))
+              )}
+            </motion.div>
+          )}
 
-            {/* Essay Responses */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-6">
-                <h3 className="text-[11px] font-bold text-[#e0231c] uppercase tracking-widest mb-4">Hardest Technical Problem</h3>
-                <p className="text-sm leading-relaxed text-[#aab4ad] whitespace-pre-wrap">{selectedApp.hardest_problem}</p>
-              </div>
-              <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-6">
-                <h3 className="text-[11px] font-bold text-[#2dd4bf] uppercase tracking-widest mb-4">Why Code Kootu?</h3>
-                <p className="text-sm leading-relaxed text-[#aab4ad] whitespace-pre-wrap">{selectedApp.why_kootu}</p>
-              </div>
-            </div>
+          {/* ================= FINAL MEMBER VERDICTS TAB ================= */}
+          {activeTab === 'members' && (
+            <motion.div key="members" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto space-y-6">
+              {loading ? (
+                <div className="text-center py-20 text-[#2dd4bf] font-mono animate-pulse">Loading Applications...</div>
+              ) : applications.filter(app => (app.application_reviews?.length || 0) >= 14).length === 0 ? (
+                <div className="text-center py-20 border border-dashed border-[#dfe7e0]/10 rounded-2xl text-[#78837c] flex flex-col items-center">
+                  <Users className="w-12 h-12 mb-4 opacity-20" />
+                  <p className="text-lg">No candidates are ready for final review.</p>
+                  <p className="text-sm mt-2">Waiting for all 14 team members to cast their votes.</p>
+                </div>
+              ) : (
+                applications
+                  .filter(app => (app.application_reviews?.length || 0) >= 14) // ONLY SHOW IF 14+ VOTES
+                  .map(app => {
+                    const reviews = app.application_reviews || [];
+                    const totalReviews = reviews.length;
+                    
+                    const endorsements = reviews.filter((r: any) => r.vote === 'Endorse').length;
+                    const endorsePercent = totalReviews > 0 ? Math.round((endorsements / totalReviews) * 100) : 0;
+                    const totalRating = reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0);
+                    const avgRating = totalReviews > 0 ? (totalRating / totalReviews).toFixed(1) : 0;
 
-            {/* Board Reviews & Voting */}
-            <div className="bg-[#0a0e12] border border-[#dfe7e0]/10 rounded-2xl p-6 md:p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-medium text-white flex items-center gap-2"><MessageSquare className="w-5 h-5 text-[#78837c]"/> Board Reviews ({reviews.length}/14)</h3>
-                
-                {!isFormOpen && (
-                  <button 
-                    onClick={() => setIsFormOpen(true)}
-                    className={`px-6 py-2.5 rounded-xl font-bold uppercase tracking-widest text-xs flex items-center gap-2 transition-all shadow-lg ${hasReviewed ? 'bg-[#dfe7e0]/10 text-[#dfe7e0] hover:bg-[#dfe7e0]/20' : 'bg-[#e0231c] text-white hover:bg-[#c01d17] shadow-[0_0_20px_rgba(224,35,28,0.4)] animate-pulse'}`}
-                  >
-                    {hasReviewed ? <><Edit3 className="w-4 h-4"/> Update Vote</> : <><Check className="w-4 h-4"/> Vote Now</>}
-                  </button>
-                )}
-              </div>
-              
-              {/* Accordion List of Reviews */}
-              <div className="space-y-2 mb-6">
-                {reviews.length === 0 ? (
-                  <p className="text-sm text-[#78837c] italic py-4 text-center border border-dashed border-[#dfe7e0]/10 rounded-xl">No votes cast yet. Be the first.</p>
-                ) : (
-                  reviews.map(rev => {
-                    const isExpanded = expandedReviewId === rev.id;
-                    const isMe = rev.reviewer_id === profile?.id;
+                    const stats = { endorsePercent, avgRating };
 
                     return (
-                      <div key={rev.id} className={`border rounded-xl overflow-hidden transition-colors ${isMe ? 'border-[#2dd4bf]/30 bg-[#2dd4bf]/5' : 'border-[#dfe7e0]/10 bg-[#05070a]'}`}>
-                        <button 
-                          onClick={() => setExpandedReviewId(isExpanded ? null : rev.id)}
-                          className="w-full px-5 py-4 flex justify-between items-center hover:bg-white/5 transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className={`font-medium text-sm ${isMe ? 'text-[#2dd4bf]' : 'text-[#dfe7e0]'}`}>
-                              {rev.reviewer_name} {isMe && '(You)'}
-                            </span>
-                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${rev.vote === 'Endorse' ? 'bg-[#2dd4bf]/10 text-[#2dd4bf]' : 'bg-red-500/10 text-red-400'}`}>
-                              {rev.vote}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <span className="text-xs font-mono text-[#78837c]">Score: <strong className="text-white">{rev.rating}</strong>/100</span>
-                            {isExpanded ? <ChevronUp className="w-4 h-4 text-[#78837c]" /> : <ChevronDown className="w-4 h-4 text-[#78837c]" />}
-                          </div>
-                        </button>
+                      <div key={app.id} className="bg-[#0a0e12] border border-[#2dd4bf]/30 rounded-2xl p-6 shadow-[0_0_30px_rgba(45,212,191,0.05)]">
                         
-                        <AnimatePresence>
-                          {isExpanded && (
-                            <motion.div 
-                              initial={{ height: 0, opacity: 0 }} 
-                              animate={{ height: 'auto', opacity: 1 }} 
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="px-5 pb-4 pt-2 border-t border-[#dfe7e0]/5">
-                                <p className="text-sm text-[#aab4ad] leading-relaxed italic">"{rev.comment}"</p>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        <div className="flex justify-between items-start mb-6 border-b border-[#dfe7e0]/10 pb-4">
+                          <div>
+                            <h2 className="text-2xl font-medium text-white">{app.full_name}</h2>
+                            <p className="text-sm text-[#78837c] font-mono mt-1">{app.desired_wing} • {app.branch} ({app.year_of_study})</p>
+                          </div>
+                          <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#2dd4bf]/20 text-[#2dd4bf] animate-pulse">
+                            14+ Votes Reached
+                          </span>
+                        </div>
+
+                        {/* Final Stats Grid */}
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                          <div className="bg-[#05070a] p-5 rounded-xl border border-[#dfe7e0]/5 text-center">
+                            <p className="text-[10px] text-[#78837c] uppercase font-mono mb-2">Average Rating</p>
+                            <p className="text-4xl font-black text-[#e0231c]">{avgRating}<span className="text-lg text-[#78837c]">/100</span></p>
+                          </div>
+                          <div className="bg-[#05070a] p-5 rounded-xl border border-[#dfe7e0]/5 text-center">
+                            <p className="text-[10px] text-[#78837c] uppercase font-mono mb-2">Endorsement Rate</p>
+                            <p className="text-4xl font-black text-[#2dd4bf]">{endorsePercent}%</p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-4">
+                          <button 
+                            onClick={() => handleFinalVerdict(app, 'Accepted', stats)}
+                            disabled={actionLoading === app.id}
+                            className="flex-1 py-4 bg-[#2dd4bf] text-black border border-[#2dd4bf] font-bold uppercase tracking-wider text-sm rounded-xl hover:bg-[#20b8a6] transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(45,212,191,0.3)]"
+                          >
+                            {actionLoading === app.id ? 'Publishing...' : <><CheckCircle2 className="w-5 h-5"/> Accept & Publish</>}
+                          </button>
+                          <button 
+                            onClick={() => handleFinalVerdict(app, 'Rejected', stats)}
+                            disabled={actionLoading === app.id}
+                            className="flex-1 py-4 bg-red-500/10 border border-red-500/30 text-red-400 font-bold uppercase tracking-wider text-sm rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            {actionLoading === app.id ? 'Publishing...' : <><XCircle className="w-5 h-5"/> Reject & Publish</>}
+                          </button>
+                        </div>
                       </div>
                     );
                   })
-                )}
-              </div>
+              )}
+            </motion.div>
+          )}
 
-              {/* Voting Form (Animated Open/Close) */}
-              <AnimatePresence>
-                {isFormOpen && (
-                  <motion.div 
-                    initial={{ height: 0, opacity: 0 }} 
-                    animate={{ height: 'auto', opacity: 1 }} 
-                    exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="border-t border-[#dfe7e0]/10 pt-6 mt-6">
-                      
-                      <div className="flex justify-between items-center mb-4">
-                        <p className="text-sm font-bold text-white uppercase tracking-wider">{hasReviewed ? 'Update Your Review' : 'Cast Your Vote'}</p>
-                        <button onClick={() => setIsFormOpen(false)} className="text-[#78837c] hover:text-white"><X className="w-5 h-5"/></button>
-                      </div>
+          {/* ================= RESTOCK REQUESTS TAB ================= */}
+          {activeTab === 'restock' && (
+            <motion.div key="restock" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto">
+               <div className="text-center py-20 border border-dashed border-[#dfe7e0]/10 rounded-2xl text-[#78837c]">
+                 Restock Requests module is under construction.
+               </div>
+            </motion.div>
+          )}
 
-                      {/* 1-100 Rating System */}
-                      <div className="mb-6 bg-[#05070a] p-5 rounded-xl border border-[#dfe7e0]/5">
-                        <div className="flex justify-between items-center mb-4">
-                          <p className="text-sm font-medium flex items-center gap-2"><SlidersHorizontal className="w-4 h-4 text-[#2dd4bf]"/> Candidate Score (1-100)</p>
-                          <input 
-                            type="number" 
-                            min="1" 
-                            max="100" 
-                            value={rating} 
-                            onChange={(e) => setRating(Number(e.target.value))}
-                            className="w-20 bg-[#0a0e12] border border-[#2dd4bf]/50 text-[#2dd4bf] text-center font-bold rounded-lg px-2 py-1 outline-none focus:border-[#2dd4bf]"
-                          />
-                        </div>
-                        <input 
-                          type="range" 
-                          min="1" 
-                          max="100" 
-                          value={rating} 
-                          onChange={(e) => setRating(Number(e.target.value))}
-                          className="w-full accent-[#2dd4bf] h-2 bg-[#0a0e12] rounded-lg appearance-none cursor-pointer"
-                        />
-                        <div className="flex justify-between text-[10px] text-[#78837c] mt-2 font-mono">
-                          <span>1 (Poor)</span>
-                          <span>50 (Average)</span>
-                          <span>100 (God Tier)</span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-4 mb-4">
-                        <button onClick={() => setVote('Endorse')} className={`flex-1 py-3 rounded-xl border flex items-center justify-center gap-2 font-bold uppercase tracking-wider transition-all ${vote === 'Endorse' ? 'bg-[#2dd4bf] text-black border-[#2dd4bf]' : 'bg-transparent text-[#2dd4bf] border-[#2dd4bf]/30 hover:bg-[#2dd4bf]/10'}`}><Check className="w-4 h-4"/> Endorse</button>
-                        <button onClick={() => setVote('Reject')} className={`flex-1 py-3 rounded-xl border flex items-center justify-center gap-2 font-bold uppercase tracking-wider transition-all ${vote === 'Reject' ? 'bg-[#e0231c] text-white border-[#e0231c]' : 'bg-transparent text-[#e0231c] border-[#e0231c]/30 hover:bg-[#e0231c]/10'}`}><X className="w-4 h-4"/> Reject</button>
-                      </div>
-                      <textarea 
-                        value={comment} 
-                        onChange={e => setComment(e.target.value)} 
-                        placeholder="You must leave a comment justifying your decision..." 
-                        className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#dfe7e0] outline-none transition-colors min-h-[100px] resize-none mb-4" 
-                      />
-                      <button onClick={handleReviewSubmit} disabled={submitting || !vote || comment.length < 5} className="w-full py-4 bg-[#dfe7e0] text-black font-bold uppercase tracking-widest rounded-xl hover:bg-white transition-colors disabled:opacity-50">
-                        {submitting ? 'Submitting...' : hasReviewed ? 'Update Review' : 'Submit Review'}
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
+        </AnimatePresence>
       </div>
     </div>
   );
