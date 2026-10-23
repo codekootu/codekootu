@@ -1,39 +1,39 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  ArrowLeft, ArrowRight, Send, CheckCircle2, User, Mail, Phone, 
-  BookOpen, Link as LinkIcon, Code2, Cpu, Rocket, Clock, Zap, ShieldAlert
+  ArrowLeft, ArrowRight, CheckCircle2, User, Clock, Zap, ShieldAlert, LogIn
 } from 'lucide-react';
+import AnimatedBackground from '@/components/AnimatedBackground'; // Import the background
 
 export default function ApplyPage() {
   const supabase = createClient();
-  const router = useRouter();
   
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true); 
 
   const [formData, setFormData] = useState({
     full_name: '', email: '', phone: '', branch: 'Computer Science (CSE)',
+    custom_branch: '', 
     year_of_study: '1st Year', desired_wing: 'Software Wing', portfolio_url: '',
     commitment_hours: '10-15 hours', other_commitments: '',
     hardest_problem: '', why_kootu: ''
   });
 
   useEffect(() => {
-    // Check if they are logged in (you can redirect to login if not)
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) {
         setUser(data.user);
         setFormData(prev => ({ ...prev, email: data.user.email || '' }));
       }
+      setCheckingAuth(false);
     });
   }, [supabase]);
 
@@ -46,16 +46,16 @@ export default function ApplyPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
-      setErrorMsg("You must be logged in to apply. Please login first.");
-      return;
-    }
+    if (!user) return;
     
     setLoading(true);
     setErrorMsg(null);
 
+    const finalBranch = formData.branch === 'Other' ? `Other: ${formData.custom_branch}` : formData.branch;
+
     const { error } = await supabase.from('applications').insert({
       ...formData,
+      branch: finalBranch, 
       user_id: user.id,
       status: 'Pending'
     });
@@ -75,12 +75,52 @@ export default function ApplyPage() {
     exit: (direction: number) => ({ zIndex: 0, x: direction < 0 ? 1000 : -1000, opacity: 0, rotateY: direction < 0 ? 45 : -45 })
   };
 
+  // 1. LOADING STATE
+  if (checkingAuth) {
+    return (
+      <div className="min-h-[100dvh] bg-[#05070a] flex flex-col items-center justify-center text-[#dfe7e0] relative overflow-hidden">
+        <AnimatedBackground />
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-[#2dd4bf]/20 border-t-[#2dd4bf] rounded-full animate-spin mb-4" />
+          <p className="font-mono text-xs uppercase tracking-widest text-[#78837c]">Verifying Identity...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. UNAUTHENTICATED STATE
+  if (!user) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center p-4 relative overflow-hidden">
+        <AnimatedBackground />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 max-w-md w-full bg-[#0a0e12]/90 backdrop-blur-3xl border border-[#e0231c]/30 rounded-3xl p-10 text-center shadow-[0_0_50px_rgba(224,35,28,0.15)]">
+          <div className="w-20 h-20 bg-[#e0231c]/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#e0231c]/20">
+            <ShieldAlert className="w-10 h-10 text-[#e0231c]" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">Authentication Required</h2>
+          <p className="text-sm text-[#78837c] mb-8 leading-relaxed">
+            To apply for the collective, you must first create an account or log in. This allows you to track your application status in real-time.
+          </p>
+          <Link 
+            href="/login?next=/apply" 
+            className="w-full py-4 bg-[#dfe7e0] text-black font-bold uppercase tracking-widest rounded-xl hover:scale-105 transition-transform flex items-center justify-center gap-2"
+          >
+            <LogIn className="w-5 h-5" /> Login to Continue
+          </Link>
+          <Link href="/" className="mt-6 inline-flex items-center gap-2 text-xs text-[#78837c] hover:text-white transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Return to Home
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // 3. AUTHENTICATED FORM
   return (
-    <div className="min-h-[100dvh] bg-[#05070a] text-[#dfe7e0] font-sans flex flex-col items-center justify-center py-12 px-4 relative overflow-hidden perspective-[1500px]">
+    <div className="min-h-[100dvh] text-[#dfe7e0] font-sans flex flex-col items-center justify-center py-12 px-4 relative overflow-hidden perspective-[1500px]">
       
-      {/* Background Aura */}
-      <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.05, 0.15, 0.05] }} transition={{ duration: 10, repeat: Infinity }} className="absolute top-0 left-0 w-[60vw] h-[60vw] bg-[#e0231c]/20 rounded-full blur-[150px] pointer-events-none" />
-      <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.05, 0.1, 0.05] }} transition={{ duration: 12, repeat: Infinity }} className="absolute bottom-0 right-0 w-[60vw] h-[60vw] bg-[#2dd4bf]/15 rounded-full blur-[150px] pointer-events-none" />
+      {/* Heavy Animated Background */}
+      <AnimatedBackground />
 
       <div className="relative z-10 w-full max-w-3xl">
         {success ? (
@@ -88,8 +128,8 @@ export default function ApplyPage() {
             <CheckCircle2 className="w-24 h-24 text-[#2dd4bf] mx-auto mb-6 animate-pulse" />
             <h2 className="text-4xl font-black text-white mb-4">APPLICATION SECURED</h2>
             <p className="text-[#78837c] text-lg mb-8">Your profile is now under review by the Executive Board. You can track your status on your dashboard.</p>
-            <Link href="/apply/status" className="px-8 py-4 bg-[#dfe7e0] text-black font-bold uppercase tracking-widest rounded-xl hover:scale-105 transition-transform inline-block">
-              Track Application
+            <Link href="/portal/dashboard" className="px-8 py-4 bg-[#dfe7e0] text-black font-bold uppercase tracking-widest rounded-xl hover:scale-105 transition-transform inline-block">
+              Go to Portal Dashboard
             </Link>
           </motion.div>
         ) : (
@@ -134,12 +174,43 @@ export default function ApplyPage() {
                         <label className="text-[10px] uppercase font-mono tracking-wider text-[#78837c] mb-2 block">Phone</label>
                         <input type="tel" name="phone" required value={formData.phone} onChange={handleChange} placeholder="+91 98765 43210" className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] outline-none transition-colors" />
                       </div>
+                      
+                      {/* BRANCH DROPDOWN */}
                       <div>
                         <label className="text-[10px] uppercase font-mono tracking-wider text-[#78837c] mb-2 block">Branch</label>
                         <select name="branch" value={formData.branch} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] outline-none transition-colors appearance-none">
-                          <option>Computer Science (CSE)</option><option>AI & Data Science</option><option>Electronics (ECE)</option><option>Mechanical (ME)</option><option>Civil (CE)</option><option>Cybersecurity</option>
+                          <option>Computer Science (CSE)</option>
+                          <option>AI & Data Science</option>
+                          <option>Electronics (ECE)</option>
+                          <option>Mechanical (ME)</option>
+                          <option>Civil (CE)</option>
+                          <option>Cybersecurity</option>
+                          <option>VLSI</option>
+                          <option>Other</option>
                         </select>
+                        
+                        <AnimatePresence>
+                          {formData.branch === 'Other' && (
+                            <motion.div 
+                              initial={{ opacity: 0, height: 0, marginTop: 0 }} 
+                              animate={{ opacity: 1, height: 'auto', marginTop: 12 }} 
+                              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <input 
+                                type="text" 
+                                name="custom_branch" 
+                                required 
+                                value={formData.custom_branch} 
+                                onChange={handleChange} 
+                                placeholder="Please specify your branch..." 
+                                className="w-full bg-[#05070a] border border-[#2dd4bf]/40 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] outline-none transition-colors shadow-[0_0_15px_rgba(45,212,191,0.1)]" 
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
+
                       <div>
                         <label className="text-[10px] uppercase font-mono tracking-wider text-[#78837c] mb-2 block">Year of Study</label>
                         <select name="year_of_study" value={formData.year_of_study} onChange={handleChange} className="w-full bg-[#05070a] border border-[#dfe7e0]/15 rounded-xl px-4 py-3 text-sm text-white focus:border-[#2dd4bf] outline-none transition-colors appearance-none">
