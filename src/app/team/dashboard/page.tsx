@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { 
   LayoutDashboard, Cpu, HardDrive, Megaphone, ShieldAlert, 
   LogOut, MessageSquare, Menu, X, Wallet, Code2, Users, Lightbulb,
-  ShieldCheck, UserPlus 
+  ShieldCheck, UserPlus, Shield // <-- ADDED Shield icon here
 } from 'lucide-react';
 import { ActivePresenceWidget } from '@/components/team/ActivePresenceWidget';
 import { CurrentProjectWidget } from '@/components/team/CurrentProjectWidget';
@@ -58,6 +58,7 @@ export default function TeamDashboard() {
 
   const wingItems = [
     { name: 'Software Wing', href: '/team/software', icon: Code2, show: role === 'software' || isAdmin },
+    { name: 'Cyber Wing', href: '/team/cyber', icon: Shield, show: role === 'cyber' || isAdmin }, // <-- ADDED Cyber Wing here
     { name: 'Hardware Wing', href: '/team/hardware', icon: HardDrive, show: role === 'hardware' || isAdmin },
     { name: 'Operations Wing', href: '/team/operations', icon: Megaphone, show: role === 'operations' || isAdmin },
     { name: 'Committee', href: '/team/committee', icon: Users, show: profile?.is_review_committee || isAdmin },
