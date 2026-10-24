@@ -8,7 +8,8 @@ import {
   CloudLightning, Layers, BarChart, LineChart, PieChart, Database, 
   Users, KeyRound, Search, FileCheck, Share2, Target, Globe, 
   ServerOff, Clock, Link as LinkIcon, Radio, Laptop, Router, 
-  Smartphone, Cpu, CheckCircle, Network, Globe2, GitBranch 
+  Smartphone, Cpu, CheckCircle, Network, Globe2, GitBranch,
+  HardDrive // <-- ADDED THIS HERE
 } from 'lucide-react';
 
 // --- DATA STRUCTURES FOR ALL TABS ---
@@ -89,7 +90,6 @@ const tabs = ['Overview', 'Threat Intel', 'Assets', 'Resources'];
 export default function CyberCommandCenter() {
   const [activeTab, setActiveTab] = useState('Overview');
 
-  // Helper function to render the correct grid based on active tab
   const getActiveTools = () => {
     switch (activeTab) {
       case 'Overview': return overviewTools;
