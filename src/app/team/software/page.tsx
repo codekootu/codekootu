@@ -29,11 +29,13 @@ export default function SoftwareCommandCenter() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/team/login'); return; }
       
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+      // Fetch BOTH role and email to check for Sayed
+      const { data: profile } = await supabase.from('profiles').select('role, email').eq('id', session.user.id).single();
       const role = profile?.role || 'public';
+      const email = profile?.email || '';
 
-      // STRICT ROUTE GUARD
-      if (role !== 'software' && role !== 'super_admin') {
+      // STRICT ROUTE GUARD (Allows Software, Super Admins, AND Sayed)
+      if (role !== 'software' && role !== 'super_admin' && email !== 'sayed@codekootu.com') {
         router.push('/team/dashboard');
         return;
       }
