@@ -6,7 +6,7 @@ import {
   Code2, 
   HardDrive, 
   Megaphone, 
-  ShieldCheck, 
+  Shield, // <-- Changed from ShieldCheck to Shield
   Edit2, 
   Check, 
   X, 
@@ -16,7 +16,8 @@ import {
 
 interface WingReport {
   id?: string;
-  wing: 'software' | 'hardware' | 'operations' | 'committee';
+  // Changed 'committee' to 'cyber'
+  wing: 'software' | 'hardware' | 'operations' | 'cyber'; 
   title: string;
   progress: number;
   report: string;
@@ -46,10 +47,11 @@ const DEFAULT_REPORTS: WingReport[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    wing: 'committee',
-    title: 'Committee Wing',
-    progress: 60,
-    report: 'Reviewing 3 new ideas from the triage queue. Next vote scheduled for Friday.',
+    // Replaced Committee with Cyber
+    wing: 'cyber',
+    title: 'Cyber Wing',
+    progress: 10,
+    report: 'Initial infrastructure audit and WAF configuration in progress.',
     updated_at: new Date().toISOString(),
   },
 ];
@@ -58,7 +60,7 @@ const WING_ICONS = {
   software: Code2,
   hardware: HardDrive,
   operations: Megaphone,
-  committee: ShieldCheck,
+  cyber: Shield, // <-- Added Cyber Icon
 };
 
 export function WingProgressTracker({ 
@@ -136,7 +138,6 @@ export function WingProgressTracker({
   const saveReport = async (wing: string) => {
     setSaving(true);
     
-    // Explicit update targeting the wing row directly
     const { error } = await supabase
       .from('wing_reports')
       .update({
