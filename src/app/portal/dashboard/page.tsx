@@ -23,8 +23,18 @@ export default function PublicDashboard() {
       if (!session) return;
       
       // Fetch Profile
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      setProfile(prof);
+      const { data: prof, error: profError } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      if (profError || !prof) {
+        console.error("Profile fetch failed:", profError);
+        // Fallback to Auth metadata if the profile table fails
+        setProfile({ 
+          full_name: session.user.user_metadata?.full_name || 'Team Member',
+          role: 'public' // or whatever default you want
+        });
+      } else {
+        setProfile(prof);
+      }
+
 
       // Fetch Ideas
       const { data: ideasData } = await supabase.from('ideas').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
