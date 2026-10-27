@@ -18,33 +18,31 @@ export default function PublicDashboard() {
   const [waitlistJoined, setWaitlistJoined] = useState(false);
 
   useEffect(() => {
-    async function getData() {
+        async function getData() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
       // Fetch Profile
-      const { data: prof, error: profError } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      if (profError || !prof) {
-        console.error("Profile fetch failed:", profError);
-        // Fallback to Auth metadata if the profile table fails
-        setProfile({ 
-          full_name: session.user.user_metadata?.full_name || 'Team Member',
-          role: 'public' // or whatever default you want
-        });
-      } else {
-        setProfile(prof);
-      }
-
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      setProfile(prof);
 
       // Fetch Ideas
-      const { data: ideasData } = await supabase.from('ideas').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
-      if (ideasData) setIdeas(ideasData);
+      if (prof?.role && prof.role !== 'public') {
+        // If Super Admin or Team Member, fetch ALL ideas
+        const { data: ideasData } = await supabase.from('ideas').select('*').order('created_at', { ascending: false });
+        if (ideasData) setIdeas(ideasData);
+      } else {
+        // If Public user, only fetch their OWN ideas
+        const { data: ideasData } = await supabase.from('ideas').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
+        if (ideasData) setIdeas(ideasData);
+      }
 
-      // Fetch Application Status
+      // Fetch Application Status (only relevant for public users)
       const { data: appData } = await supabase.from('applications').select('*').eq('user_id', session.user.id).maybeSingle();
       if (appData) setApplication(appData);
       
       setLoading(false);
+    }
     }
     getData();
   }, [supabase]);
