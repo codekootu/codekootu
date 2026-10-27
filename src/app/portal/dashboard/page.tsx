@@ -18,7 +18,7 @@ export default function PublicDashboard() {
   const [waitlistJoined, setWaitlistJoined] = useState(false);
 
   useEffect(() => {
-        async function getData() {
+    async function getData() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
@@ -27,22 +27,14 @@ export default function PublicDashboard() {
       setProfile(prof);
 
       // Fetch Ideas
-      if (prof?.role && prof.role !== 'public') {
-        // If Super Admin or Team Member, fetch ALL ideas
-        const { data: ideasData } = await supabase.from('ideas').select('*').order('created_at', { ascending: false });
-        if (ideasData) setIdeas(ideasData);
-      } else {
-        // If Public user, only fetch their OWN ideas
-        const { data: ideasData } = await supabase.from('ideas').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
-        if (ideasData) setIdeas(ideasData);
-      }
+      const { data: ideasData } = await supabase.from('ideas').select('*').eq('user_id', session.user.id).order('created_at', { ascending: false });
+      if (ideasData) setIdeas(ideasData);
 
-      // Fetch Application Status (only relevant for public users)
+      // Fetch Application Status
       const { data: appData } = await supabase.from('applications').select('*').eq('user_id', session.user.id).maybeSingle();
       if (appData) setApplication(appData);
       
       setLoading(false);
-    }
     }
     getData();
   }, [supabase]);
