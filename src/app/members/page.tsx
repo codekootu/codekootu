@@ -9,7 +9,7 @@ type Member = { id: string | null; name: string; title: string; dept: string; wi
 // id = membership/credential ID (used to load /cards/<id>-front.png). Use null if a member has no card yet.
 const MEMBERS: Member[] = [
   // Software Engineering
-  { id: 'CS-S-01', name: 'Noel Mathews', title: 'Chief Systems Architect & Technical Director', dept: 'CSE', wing: 'Software' },
+  { id: 'CS-S-01', name: 'Noel Mathews', title: 'Chief Systems Architect & Technical Director', dept: 'CSE', wing: 'Software',bridge: 'Team Lead' },
   { id: 'CS-S-02', name: 'Gokul G Krishna', title: 'Backend & Cloud Infrastructure Engineer', dept: 'CSE', wing: 'Software' },
   { id: 'CS-S-05', name: 'Kevin Paul', title: 'Integration & Middleware Engineer', dept: 'CSE', wing: 'Software' },
   { id: 'CS-S-06', name: 'Ameen Puthiyottil', title: 'Application & Core Logic Developer', dept: 'CSE', wing: 'Software' },
@@ -27,7 +27,7 @@ const MEMBERS: Member[] = [
   { id: 'AD-H-12', name: 'Nevil Biju Mathew', title: 'Hardware Intelligence & Data Systems Specialist', dept: 'AI / DS', wing: 'Hardware' },
   { id: 'EC-H-20', name: 'Christy Kuruvilla', title: 'VLSI Design / PCB Layout Engineer', dept: 'VLSI', wing: 'Hardware' },
   { id: 'ME-H-07', name: 'Austin M J', title: 'Lead Mechanical & Structural Engineer', dept: 'Mechanical / Civil', wing: 'Hardware' },
-  { id: 'CE-H-04', name: 'Sreehari Subhash', title: 'Environmental Sensing & Structural Dynamics Specialist', dept: 'Civil / Mech', wing: 'Hardware' },
+  { id: 'CE-H-04', name: 'Sreehari Subhash', title: 'Environmental Sensing & Structural Dynamics Specialist', dept: 'Civil / Mech', wing: 'Hardware' bridge: 'Bridge: Hardware ↔ Software' },
   { id: 'AD-H-13', name: 'Arjun', title: 'Hardware Reliability & Field QA Specialist', dept: 'Mechanical', wing: 'Hardware' },
   // Media & Outreach
   { id: 'CS-P-10', name: 'Bestin George', title: 'Head of Product Strategy & Community Triage', dept: 'Outreach', wing: 'Media & Outreach' },
