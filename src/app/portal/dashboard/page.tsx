@@ -86,7 +86,7 @@ export default function PublicDashboard() {
                 <Users className="w-6 h-6 text-[#e0231c]" /> Join the Collective
               </h3>
               <p className="text-sm text-[#aab4ad] max-w-lg">
-                We are currently accepting applications for the Software, Hardware, and Operations wings. Do you have what it takes to build the future?
+                We are currently accepting applications for the Software, Hardware, Cybersecurity and Operations wings. Do you have what it takes to build the future?
               </p>
             </div>
             <Link href="/apply" className="relative z-10 shrink-0 px-6 py-3 bg-[#e0231c] text-white font-bold uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(224,35,28,0.4)] flex items-center gap-2 text-sm">
