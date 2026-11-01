@@ -39,7 +39,7 @@ export function LandingPageFrame({ sourceUrl, title, className }: Props) {
       <iframe
         title={title}
         src={sourceUrl}
-        sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts"
+        sandbox="allow-downloads allow-forms allow-modals allow-popups allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
         loading="eager"
         onLoad={() => setReady(true)}
         style={{
