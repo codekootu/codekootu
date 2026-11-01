@@ -36,6 +36,7 @@ const MEMBERS: Member[] = [
 
 // Shown in his own section at the very end of the page.
 const ADVAITH: Member = { id: 'CS-P-09', name: 'Advaith B Nair', title: 'Brand Director & Media Production Lead', dept: 'Founding Member', wing: 'Forever Kootu' };
+
 // Wing display order
 const WINGS = ['Software', 'Cyber', 'Hardware', 'Media & Outreach'];
 const WING_LABELS: Record<string, string> = {
