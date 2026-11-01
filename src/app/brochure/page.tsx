@@ -65,7 +65,7 @@ export default function BrochurePage() {
         </div>
 
         <div className="relative z-10 flex justify-between items-end border-t border-[#dfe7e0]/10 pt-6">
-          <div className="font-mono text-xs tracking-widest text-[#78837c]">15 MINDS<br/>MULTIPLE DISCIPLINES<br/>ONE COLLECTIVE</div>
+          <div className="font-mono text-xs tracking-widest text-[#78837c]">20 MINDS<br/>MULTIPLE DISCIPLINES<br/>ONE COLLECTIVE</div>
           <div className="w-12 h-12 bg-[#e0231c] flex items-center justify-center">
             <div className="w-4 h-4 bg-[#05070a]" />
           </div>
