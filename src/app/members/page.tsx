@@ -9,7 +9,7 @@ type Member = { id: string | null; name: string; title: string; dept: string; wi
 // id = membership/credential ID (used to load /cards/<id>-front.png). Use null if a member has no card yet.
 const MEMBERS: Member[] = [
   // Software Engineering
-  { id: 'CS-S-01', name: 'Noel Mathews', title: 'Chief Systems Architect & Technical Director', dept: 'CSE', wing: 'Software',bridge: 'Team Lead' },
+  { id: 'CS-S-01', name: 'Noel Mathews', title: 'Chief Systems Architect & Technical Director', dept: 'CSE', wing: 'Software', bridge: 'Team Lead' },
   { id: 'CS-S-02', name: 'Gokul G Krishna', title: 'Backend & Cloud Infrastructure Engineer', dept: 'CSE', wing: 'Software' },
   { id: 'CS-S-05', name: 'Kevin Paul', title: 'Integration & Middleware Engineer', dept: 'CSE', wing: 'Software' },
   { id: 'CS-S-06', name: 'Ameen Puthiyottil', title: 'Application & Core Logic Developer', dept: 'CSE', wing: 'Software' },
@@ -27,7 +27,7 @@ const MEMBERS: Member[] = [
   { id: 'AD-H-12', name: 'Nevil Biju Mathew', title: 'Hardware Intelligence & Data Systems Specialist', dept: 'AI / DS', wing: 'Hardware' },
   { id: 'EC-H-20', name: 'Christy Kuruvilla', title: 'VLSI Design / PCB Layout Engineer', dept: 'VLSI', wing: 'Hardware' },
   { id: 'ME-H-07', name: 'Austin M J', title: 'Lead Mechanical & Structural Engineer', dept: 'Mechanical / Civil', wing: 'Hardware' },
-  { id: 'CE-H-04', name: 'Sreehari Subhash', title: 'Environmental Sensing & Structural Dynamics Specialist', dept: 'Civil / Mech', wing: 'Hardware' bridge: 'Bridge: Hardware ↔ Software' },
+  { id: 'CE-H-04', name: 'Sreehari Subhash', title: 'Environmental Sensing & Structural Dynamics Specialist', dept: 'Civil / Mech', wing: 'Hardware', bridge: 'Bridge: Hardware ↔ Software' },
   { id: 'AD-H-13', name: 'Arjun', title: 'Hardware Reliability & Field QA Specialist', dept: 'Mechanical', wing: 'Hardware' },
   // Media & Outreach
   { id: 'CS-P-10', name: 'Bestin George', title: 'Head of Product Strategy & Community Triage', dept: 'Outreach', wing: 'Media & Outreach' },
@@ -87,12 +87,12 @@ export default function MembersPage() {
               </h2>
               <span className="text-[10px] uppercase tracking-widest text-[#78837c]">{MEMBERS.filter(m => m.wing === wing).length} members</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex flex-wrap justify-center gap-6">
               {MEMBERS.filter(m => m.wing === wing).map((member) => (
                 <button
                   key={member.id}
                   onClick={() => member.id && setSelected(member)}
-                  className="text-left group relative p-6 md:p-8 bg-[#0a0e12] border border-[#dfe7e0]/5 hover:border-[#e0231c]/40 transition-all duration-300 rounded-xl overflow-hidden"
+                  className="text-left group relative w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] p-6 md:p-8 bg-[#0a0e12] border border-[#e0231c]/30 hover:border-[#e0231c] shadow-[0_0_30px_rgba(224,35,28,0.12)] hover:shadow-[0_0_40px_rgba(224,35,28,0.25)] transition-all duration-300 rounded-xl overflow-hidden"
                 >
                   <div className="text-[10px] font-mono tracking-widest text-[#78837c] mb-4">{member.id ?? 'ID PENDING'}</div>
                   <h3 className="text-xl font-medium text-[#dfe7e0] mb-2 group-hover:text-white transition-colors">{member.name}</h3>
@@ -116,7 +116,7 @@ export default function MembersPage() {
           </div>
           <h2 className="text-3xl md:text-4xl font-normal tracking-tight mb-4">Always one of us.</h2>
           <p className="text-[#aab4ad] leading-relaxed mb-10">
-            Advaith moved on to a new college, but he will always be our main in our hearts.
+            Advaith decided to pursue MBBS and hence had to leave team codekootu, but he will always be one of us in our hearts.
             The collective was built with him, and his mark stays on everything we make.
           </p>
           <div className="text-left relative w-full max-w-md mx-auto p-6 md:p-8 bg-[#0a0e12] border border-[#e0231c]/30 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(224,35,28,0.12)]">
