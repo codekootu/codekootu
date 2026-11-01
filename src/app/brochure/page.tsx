@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Printer, ArrowRight, Code2, Cpu, Rocket } from 'lucide-react';
-
+import { Printer, ArrowRight, Code2, Cpu, Rocket, Shield } from 'lucide-react';
 export default function BrochurePage() {
   const handlePrint = () => {
     window.print();
@@ -87,11 +86,16 @@ export default function BrochurePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t border-[#dfe7e0]/10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pt-8 border-t border-[#dfe7e0]/10">
             <div>
               <Code2 className="w-8 h-8 text-[#e0231c] mb-4" />
               <h4 className="text-lg font-medium text-white mb-2">Software Wing</h4>
               <p className="text-sm text-[#78837c] leading-relaxed">Architecture, Cloud Infrastructure, Security, and Embedded Firmware.</p>
+            </div>
+            <div>
+              <Shield className="w-8 h-8 text-[#e0231c] mb-4" />
+              <h4 className="text-lg font-medium text-white mb-2">Cyber Wing</h4>
+              <p className="text-sm text-[#78837c] leading-relaxed">Penetration Testing, DevSecOps, Application Security, and Silicon Security.</p>
             </div>
             <div>
               <Cpu className="w-8 h-8 text-[#e0231c] mb-4" />
@@ -130,7 +134,7 @@ export default function BrochurePage() {
           <div className="relative">
             <div className="absolute -left-[41px] top-1 w-5 h-5 rounded-full bg-[#05070a] border-2 border-[#78837c]" />
             <h4 className="text-xl font-medium text-white mb-2">02 // The Workbench Review</h4>
-            <p className="text-sm text-[#78837c]">A specialized member from our Software, Hardware, and Production wings reviews the idea, scoring it for technical feasibility and real-world impact.</p>
+            <p className="text-sm text-[#78837c]">A specialized member from our Software, Hardware, Cybersecurity and Production wings reviews the idea, scoring it for technical feasibility and real-world impact.</p>
           </div>
 
           {/* Step 3 */}
