@@ -4,7 +4,7 @@ import FloatingTeamButton from '@/components/FloatingTeamButton';
 
 export const metadata: Metadata = {
   title: "Code Kootu",
-  description: "15 Minds. Multiple Disciplines. One Collective.",
+  description: "20 Minds. Multiple Disciplines. One Collective.",
   // ... keep the rest of your openGraph stuff if you have it
 };
 
