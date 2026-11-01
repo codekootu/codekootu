@@ -20,7 +20,7 @@ const MEMBERS: Member[] = [
   { id: 'CY-S-14', name: 'Sayed Ibrahim', title: 'Systems Security & Web Experience Lead', dept: 'Cyber Security', wing: 'Cyber', bridge: 'Bridge: Software ↔ Cyber' },
   { id: 'CY-P-18', name: 'Sanjay S', title: 'Security Analyst / Penetration Tester', dept: 'Cyber Security', wing: 'Cyber' },
   { id: 'VL-C-19', name: 'Edwin M John', title: 'Hardware Security & Embedded Silicon Engineer', dept: 'Cyber Security', wing: 'Cyber' },
-  { id: 'CS-S-09', name: 'Aaron Regi Thomas', title: 'Application Security & DevSecOps Engineer', dept: 'CSE', wing: 'Cyber' },
+  { id: 'CS-S-09', name: 'Aaron Reji Thomas', title: 'Application Security & DevSecOps Engineer', dept: 'CSE', wing: 'Cyber' },
   // Hardware Engineering
   { id: 'EC-H-15', name: 'Muhammed Shahbaz K P', title: 'Lead Embedded Systems & Telemetry Engineer', dept: 'EC', wing: 'Hardware' },
   { id: 'CS-H-03', name: 'Abhinav Sanil', title: 'Circuit Architecture & Power Systems Specialist', dept: 'CSE', wing: 'Hardware' },
