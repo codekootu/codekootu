@@ -331,8 +331,8 @@ export default function ApplyPage() {
                     
                     <div>
                       <label className="text-[10px] uppercase font-mono tracking-widest text-[#78837c] mb-3 block">Desired Deployment Wing <span className="text-[#e0231c]">*</span></label>
-                      <div className="grid grid-cols-3 gap-4">
-                        {['Software Wing', 'Hardware Wing', 'Operations'].map(wing => (
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {['Software Wing', 'Cyber Wing', 'Hardware Wing', 'Operations'].map(wing => (
                           <motion.button 
                             whileHover={{ scale: 1.05, z: 20 }}
                             whileTap={{ scale: 0.95 }}
