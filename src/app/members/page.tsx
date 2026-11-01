@@ -118,13 +118,17 @@ export default function MembersPage() {
             Advaith decided to pursue MBBS and hence had to leave team codekootu, but he will always be one of us in our hearts.
             The collective was built with him, and his mark stays on everything we make.
           </p>
-          <div className="text-left relative w-full max-w-md mx-auto p-6 md:p-8 bg-[#0a0e12] border border-[#e0231c]/30 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(224,35,28,0.12)]">
+          <button
+            onClick={() => setSelected(ADVAITH)}
+            className="text-left group relative w-full max-w-md mx-auto p-6 md:p-8 bg-[#0a0e12] border border-[#e0231c]/30 hover:border-[#e0231c] shadow-[0_0_30px_rgba(224,35,28,0.12)] hover:shadow-[0_0_40px_rgba(224,35,28,0.25)] transition-all duration-300 rounded-xl overflow-hidden"
+          >
+            <div className="text-[10px] font-mono tracking-widest text-[#78837c] mb-4">{ADVAITH.id}</div>
             <h3 className="text-xl font-medium text-white mb-2">{ADVAITH.name}</h3>
             <p className="text-sm text-[#aab4ad] leading-relaxed">{ADVAITH.title}</p>
-            <div className="mt-6 pt-6 border-t border-[#dfe7e0]/10">
-              <span className="text-[10px] uppercase tracking-widest text-[#e0231c]">Forever part of the collective</span>
+            <div className="flex items-center gap-3 mt-6 pt-6 border-t border-[#dfe7e0]/10">
+              <span className="text-[10px] uppercase tracking-widest text-[#e0231c]">View Card →</span>
             </div>
-          </div>
+          </button>
         </div>
       </div>
 
