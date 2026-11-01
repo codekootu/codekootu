@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { 
   FileText, ChevronRight, Zap, Sparkles, 
-  Users, ArrowRight, Clock, CheckCircle2, XCircle 
+  Clock, CheckCircle2, XCircle 
 } from 'lucide-react';
 
 export default function PublicDashboard() {
@@ -76,25 +76,9 @@ export default function PublicDashboard() {
       </div>
 
       {/* --- NEW: APPLICATION STATUS SECTION --- */}
-      <div className="mb-10">
-        {!application ? (
-          /* APPLY BANNER */
-          <div className="relative group overflow-hidden bg-gradient-to-r from-[#e0231c]/10 to-[#0a0e12]/60 backdrop-blur-xl border border-[#e0231c]/30 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_30px_rgba(224,35,28,0.15)] animate-in slide-in-from-top-4 duration-700">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#e0231c]/10 blur-[80px] pointer-events-none group-hover:bg-[#e0231c]/20 transition-all duration-500" />
-            <div className="relative z-10">
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-2 flex items-center gap-2">
-                <Users className="w-6 h-6 text-[#e0231c]" /> Join the Collective
-              </h3>
-              <p className="text-sm text-[#aab4ad] max-w-lg">
-                We are currently accepting applications for the Software, Hardware, Cybersecurity and Operations wings. Do you have what it takes to build the future?
-              </p>
-            </div>
-            <Link href="/apply" className="relative z-10 shrink-0 px-6 py-3 bg-[#e0231c] text-white font-bold uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(224,35,28,0.4)] flex items-center gap-2 text-sm">
-              Apply Now <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        ) : (
-          /* APPLICATION TRACKER */
+      <div className={application ? 'mb-10' : ''}>
+        {application && (
+          /* APPLICATION TRACKER (kept so past applicants can still see their result) */
           <div className="relative bg-[#0a0e12]/80 backdrop-blur-xl border border-[#2dd4bf]/30 rounded-2xl p-6 md:p-8 shadow-[0_0_30px_rgba(45,212,191,0.1)] animate-in zoom-in-95 duration-500 overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#2dd4bf] to-transparent animate-pulse" />
             
