@@ -43,7 +43,7 @@ function escapeRegExp(string) {
 sub('<title>Kage — Where stillness reveals the unseen</title>',
     '<title>Code Kootu — Where problems become prototypes</title>', 'title');
 sub('content="A five-chapter night walk through a Kyoto mountain temple. Charred cypress, lantern light and a vermilion moon, rendered live in WebGL."',
-    'content="A fifteen-member engineering collective crowdsourcing real community problems and shipping hybrid hardware-software prototypes."', 'meta desc');
+    'content="A twenty-member engineering collective crowdsourcing real community problems and shipping hybrid hardware-software prototypes."', 'meta desc');
 sub('<div class="pre-jp jp">影の道</div>', '<div class="pre-jp jp">KOOTU</div>', 'preloader jp');
 sub('<span>Raising the mountain temple</span>', '<span>Warming the workbench</span>', 'preloader msg');
 sub('<span class="brand-tx"><b>KAGE</b><i>HIDDEN REALMS OF KYOTO</i></span>',
@@ -326,7 +326,7 @@ const SECTION_CONTENT = {
       <span class="mask-line"><span>meet the</span></span>
       <span class="mask-line"><span>makers.</span></span>
     </h1>
-    <p class="hero-sub body" data-rv="up">A fifteen-member engineering collective crowdsourcing real community problems — and shipping hybrid prototypes in hardware, software, or both.</p>
+    <p class="hero-sub body" data-rv="up">A twenty-member engineering collective crowdsourcing real community problems — and shipping hybrid prototypes in hardware, software, or both.</p>
   </div>
 
   <div class="hero-spacer"></div>
@@ -353,7 +353,7 @@ const SECTION_CONTENT = {
   <div class="gate-grid">
     <h2 class="display h-sec" data-rv="up">Real problems in from the street. Real prototypes out the door.</h2>
     <div class="gate-copy">
-      <p class="lead" data-rv="up">Code Kootu is a fifteen-member engineering collective. We crowdsource the problems people actually live with — then design, build, and ship hardware, software, or both. Every brief is read. The good ones get built.</p>
+      <p class="lead" data-rv="up">Code Kootu is a twenty-member engineering collective. We crowdsource the problems people actually live with — then design, build, and ship hardware, software, or both. Every brief is read. The good ones get built.</p>
       <p class="body" data-rv="up">Anyone can submit: a student, a nurse, a grounds-keeper, a shop-owner. If it's real, the committee scores it. A wing picks it up. What comes out the other end is yours to keep, fork, and improve.</p>
       <a class="arrowlink" href="#pathways" data-rv="fade" data-cursor>
         <span>Submit a problem</span>
@@ -362,8 +362,8 @@ const SECTION_CONTENT = {
     </div>
   </div>
   <div class="gate-stats" data-rv="up">
-    <div><b>15</b><span>Builders</span></div>
-    <div><b>03</b><span>Wings</span></div>
+    <div><b>20</b><span>Builders</span></div>
+    <div><b>04</b><span>Wings</span></div>
     <div><b>02</b><span>Portals</span></div>
     <div><b>∞</b><span>Problems</span></div>
   </div>
@@ -456,7 +456,7 @@ const SECTION_CONTENT = {
         <circle cx="22" cy="25" r="8.6" fill="#e0231c" fill-opacity=".9"/>
         <path d="M5 13h34M9 18.4h26M22 8.5v27" stroke="#dfe7e0" stroke-width="1.5"/>
       </svg>
-      <p>A fifteen-member engineering collective building hybrid prototypes for real community problems. Submit a brief, track it through triage, and see it ship.</p>
+      <p>A twenty-member engineering collective building hybrid prototypes for real community problems. Submit a brief, track it through triage, and see it ship.</p>
     </div>
     <div><h4>Process</h4><ul>
       <li><a href="#gate" data-cursor>The Brief</a></li>
@@ -481,7 +481,7 @@ const SECTION_CONTENT = {
   <div class="foot-base">
     <span>© 2026 Code Kootu Collective</span>
     <span class="jp">BUILT TOGETHER</span>
-    <span>Hybrid · 15 members · India</span>
+    <span>Hybrid · 20 members · India</span>
   </div>
 </footer>
 `
