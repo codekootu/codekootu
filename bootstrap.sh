@@ -167,7 +167,7 @@ __CK__
 cat > README.md <<'__CK__'
 # Code Kootu
 
-A fifteen-member engineering collective crowdsourcing real community problems and shipping hybrid hardware-software prototypes.
+A twenty-member engineering collective crowdsourcing real community problems and shipping hybrid hardware-software prototypes.
 
 This turn: the landing page. Public portal and team workbench land next.
 
